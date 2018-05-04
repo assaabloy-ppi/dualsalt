@@ -1,0 +1,91 @@
+
+createKey(byte[32] PK, byte[64] sk, byte[32] rand, bool hasSeed){
+	if (!hasSeed){
+		sk = crypto_hash(rand, 32);
+	}
+	PK = sk(0:31)*P
+}
+
+rotateKey(byte[32] pk, byte[64] sk, byte[32] r1, byte[32] r2){
+	sk(0:31) = sk(0:31)+r1
+	sk(32:63) = r2
+	createKey(pk, sk, null, true)
+}
+
+pubAB = addPubKeys(byte[32] A,byte[32] B){
+	return A + B
+}
+
+// Signing
+
+// M1 = sign1(m, C, a)
+// M2 = sign2(M1, b)
+// (R,s) = sign3(M1, M2, a) 
+
+M1 = sing1(m, C, a){
+	ra = H(a(a(32:64))||m)
+	Ra = ra*P
+	return (Ra, C, m)
+}
+
+M2 = sign2(M1, b){
+	(Ra, C, M) = M1
+	rb = H(b(32:64)||m)
+	Rb = rb*P
+	R = Ra + Rb
+	h = H(R||C||m)
+	sb = rb + h*b(0:31)
+	return (Rb, sb) 
+}
+
+(R, s) = sign3(M1, M2, a, A){
+	(Ra, C, M) = M1
+	(Rb, sb) = M2
+	R = Ra + Rb
+	h = H(R||C||m)
+	B = C - A
+	s*P == R+h*B
+	ra = H(a(32:64)||m)
+	sa = ra + h*a(0:31)
+	s = sa + sb
+	return (R, s)
+}
+
+(R, s) = sign(m, a, A){
+	(ar, ad) = a
+	r = H(ar||m)
+	R = r*P
+	h = H(R||A||m)
+	s = r + h*ad
+	return (R, s)
+}
+
+bool verify((R,a), A){
+	return R == h*A + s*P
+}
+
+// Encrypt and Decryption
+
+D1 = decrypt1(CT, a){
+	(PKx, c) = CT
+	return a(0:31)*PKx
+}
+
+(msg, nonce) = decrypt2(CT, D1, b){
+	(PKx, c) = CT
+	share = b(0:31)*PKx + D1
+	return symetricCrypto(share, c)
+}
+
+(msg, nonce) = decrypt(CT, a){
+	(PKx, c) = CT
+	share = a(0:31)*PKx
+	return symetricCrypto(share, c)
+}
+
+CT = encrypt(msg, nonce, toPub, rand){
+	createKey(PK, sk, rand, false)
+	share = sk(0:31)*toPub
+	return (PK, symetricCrypto(share, msg, nonce))
+}
+	
