@@ -3,32 +3,41 @@ package com.iwebpp.crypto;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public class DualSalt {
-    public static void createKey(byte[] PK, byte[] sk, byte[] rand, boolean hasSeed){
+    public static void createKey(byte[] publicKey, byte[] secretKey, byte[] random){
+        int i;
+        TweetNaclFast.crypto_hash(secretKey, random, 0, 32);
+        secretKey[0] &= 248;
+        secretKey[31] &= 127;
+        secretKey[31] |= 64;
+        byte[] tempPublicKey = calculatePubKey(secretKey);
+
+        for (i = 0; i < 32; i ++) publicKey[i] = tempPublicKey[i];
+    }
+
+    public static byte[] calculatePubKey(byte[] secretKey){
+        byte[] publicKey = new byte[32];
         long [] [] p = new long [4] [];
         p[0] = new long [16];
         p[1] = new long [16];
         p[2] = new long [16];
         p[3] = new long [16];
-
-        if (!hasSeed){
-            TweetNaclFast.crypto_hash(sk, rand, 0, 32);
-            sk[0] &= 248;
-            sk[31] &= 127;
-            sk[31] |= 64;
-        }
-
-        TweetNaclFast.scalarbase(p, sk, 0);
-        TweetNaclFast.pack(PK, p);
+        TweetNaclFast.scalarbase(p, secretKey, 0);
+        TweetNaclFast.pack(publicKey, p);
+        return publicKey;
     }
 
-    public static void rotateKey(byte[] PK, byte[] sk, byte[] r1, boolean add, byte[] r2){
-        if (add){
-            System.arraycopy(sk, 0, addScalars(sk, r1), 0, 32);
+    public static void rotateKey(byte[] publicKey, byte[] secretKey, byte[] random1, boolean first, byte[] random2){
+        byte[] newScalar;
+        int i;
+        if (first){
+            newScalar = addScalars(secretKey, random1);
         } else {
-            System.arraycopy(sk, 0, subtractScalars(sk, r1), 0, 32);
+            newScalar = subtractScalars(secretKey, random1);
         }
-        System.arraycopy(sk, 32, r2, 0, 32);
-        createKey(PK, sk, null, true);
+        for (i = 0; i < 32; i ++) secretKey[i] = newScalar[i];
+        for (i = 0; i < 32; i ++) secretKey[32+i] = random2[i];
+        byte[] tempPublicKey = calculatePubKey(secretKey);
+        for (i = 0; i < 32; i ++) publicKey[i] = tempPublicKey[i];
     }
 
     public static byte[] addScalars(byte[] scalarA, byte[] scalarB){
