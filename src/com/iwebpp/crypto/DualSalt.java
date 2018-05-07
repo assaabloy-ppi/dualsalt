@@ -136,6 +136,47 @@ public class DualSalt {
 // M1 = sign1(m, C, a)
 // M2 = sign2(M1, b)
 // (R,s) = sign3(M1, M2, a)
+
+    public static void signCreate(byte [] signature, byte [] message, byte [] publicKey, byte [] secretKey)    {
+
+        byte[]  h = new byte[64], r = new byte[64];
+        int n = message.length;
+        int i, j;
+        long [] x = new long[64];
+
+        long [] [] p = new long [4] [];
+        p[0] = new long [16];
+        p[1] = new long [16];
+        p[2] = new long [16];
+        p[3] = new long [16];
+
+        for (i = 0; i < n; i ++) signature[64 + i] = message[i];
+
+        for (i = 0; i < 32; i ++) signature[32 + i] = secretKey[32 + i];
+
+        TweetNaclFast.crypto_hash(r, signature,32, n+32);
+        TweetNaclFast.reduce(r);
+        TweetNaclFast.scalarbase(p, r,0);
+        TweetNaclFast.pack(signature,p);
+
+        for (i = 0; i < 32; i ++) signature[i+32] = publicKey[i];
+        TweetNaclFast.crypto_hash(h, signature,0, n + 64);
+        TweetNaclFast.reduce(h);
+
+        for (i = 0; i < 64; i ++) x[i] = 0;
+
+        for (i = 0; i < 32; i ++) x[i] = (long) (r[i]&0xff);
+
+        for (i = 0; i < 32; i ++) for (j = 0; j < 32; j ++) x[i+j] += (h[i]&0xff) * (long) (secretKey[j]&0xff);
+
+        TweetNaclFast.modL(signature,32, x);
+    }
+
+    public static boolean  signVerify(byte [] signature, byte [] publicKey){
+        byte [] tmp = new byte[signature.length];
+        return TweetNaclFast.crypto_sign_open(tmp, 0, signature, 0, signature.length, publicKey)==0;
+    }
+
 /*
     M1 = sing1(m, C, a){
         ra = H(a(a(32:64))||m)
@@ -164,19 +205,6 @@ public class DualSalt {
         sa = ra + h*a(0:31)
         s = sa + sb
         return (R, s)
-    }
-
-(R, s) = sign(m, a, A){
-        (ar, ad) = a
-                r = H(ar||m)
-        R = r*P
-        h = H(R||A||m)
-        s = r + h*ad
-        return (R, s)
-    }
-
-    bool verify((R,a), A){
-        return R == h*A + s*P
     }
 
 // Encrypt and Decryption

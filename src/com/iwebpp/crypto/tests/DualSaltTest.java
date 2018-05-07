@@ -88,10 +88,10 @@ public class DualSaltTest {
         }
     }
 
-    private void testDistributedDecryptionStress(int iterations) throws Exception {
+    private void testDistributedDecryptionStress() throws Exception {
         System.out.println("\nTest distributed decryption stress");
 
-        for (int index= 0; index<iterations; index++) {
+        for (int index = 0; index< 1000; index++) {
             byte[] rand1 = new byte[32];
             byte[] rand2 = new byte[32];
             byte[] rand3 = new byte[32];
@@ -99,6 +99,28 @@ public class DualSaltTest {
             TweetNaclFast.randombytes(rand2,32);
             TweetNaclFast.randombytes(rand3,32);
             testRotateKeys(rand1, rand2, rand3);
+        }
+    }
+
+    private void testSingleSign(byte[] rand, String testString ) throws Exception {
+        System.out.println("\nTest single sign");
+
+        byte[] publicKey = new byte[32];
+        byte[] secretKey = new byte[64];
+        DualSalt.createKey(publicKey, secretKey, rand);
+        byte[] message = testString.getBytes();
+
+        byte[] signature = new byte[64+message.length];
+        DualSalt.signCreate(signature, message, publicKey, secretKey);
+
+        boolean result = DualSalt.signVerify(signature, publicKey);
+        if (result){
+            Log.d(TAG, "Verified signature succeeded");
+        } else {
+            Log.d(TAG, "Rand: " + TweetNaclFast.hexEncodeToString(rand));
+            Log.d(TAG, "Test string: \"" + testString + "\"");
+            Log.d(TAG, "Verified signature failed");
+            throw new Exception();
         }
     }
 
@@ -119,7 +141,11 @@ public class DualSaltTest {
                 testRotateKeys(rand1, rand3, rand2);
                 testRotateKeys(rand2, rand3, rand1);
 
-                testDistributedDecryptionStress(1000);
+                //testDistributedDecryptionStress();
+
+                testSingleSign(rand1, "The best signature in the world");
+                testSingleSign(rand2, "The best signature in the all the worlds, You know like all all");
+                testSingleSign(rand3, "There could be only one ultimate signature and this is it. Stop arguing");
 
             } catch (Exception e) {
                 e.printStackTrace();
