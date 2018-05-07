@@ -88,44 +88,13 @@ public class DualSalt {
 
     private static int unpack(long[] r[], byte p[])
     {
-        long []    t = new long [16];
-        long []  chk = new long [16];
-        long []  num = new long [16];
-        long []  den = new long [16];
-        long [] den2 = new long [16];
-        long [] den4 = new long [16];
-        long [] den6 = new long [16];
-        // r[0]=x    r[1]=y   r[2]=z    r[3]=t
+        int result = TweetNaclFast.unpackneg(r, p);
+        if (result != 0){
+            return result;
+        }
 
-        TweetNaclFast.set25519(r[2], TweetNaclFast.gf1);
-        TweetNaclFast.unpack25519(r[1], p);
-        TweetNaclFast.S(num, r[1]);
-        TweetNaclFast.M(den, num, TweetNaclFast.D);
-        TweetNaclFast.Z(num, num, r[2]);
-        TweetNaclFast.A(den, r[2], den);
-
-        TweetNaclFast.S(den2, den);
-        TweetNaclFast.S(den4, den2);
-        TweetNaclFast.M(den6, den4, den2);
-        TweetNaclFast.M(t, den6, num);
-        TweetNaclFast.M(t, t, den);
-
-        TweetNaclFast.pow2523(t, t);
-        TweetNaclFast.M(t, t, num);
-        TweetNaclFast.M(t, t, den);
-        TweetNaclFast.M(t, t, den);
-        TweetNaclFast.M(r[0], t, den);
-
-        TweetNaclFast.S(chk, r[0]);
-        TweetNaclFast.M(chk, chk, den);
-        if (TweetNaclFast.neq25519(chk, num)!=0) TweetNaclFast.M(r[0], r[0], TweetNaclFast.I);
-
-        TweetNaclFast.S(chk, r[0]);
-        TweetNaclFast.M(chk, chk, den);
-        if (TweetNaclFast.neq25519(chk, num)!=0) return -1;
-
-        if (TweetNaclFast.par25519(r[0]) != ((p[31]&0xFF)>>>7)) TweetNaclFast.Z(r[0], TweetNaclFast.gf0, r[0]);
-
+        // Change sign from neg to pos
+        TweetNaclFast.Z(r[0], TweetNaclFast.gf0, r[0]);
         TweetNaclFast.M(r[3], r[0], r[1]);
 
         return 0;
