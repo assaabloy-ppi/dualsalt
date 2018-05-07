@@ -1,7 +1,5 @@
 package com.iwebpp.crypto;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
 public class DualSalt {
     public static void createKey(byte[] publicKey, byte[] secretKey, byte[] random){
         int i;
@@ -65,12 +63,7 @@ public class DualSalt {
 
         return scalar;
     }
-
-    public  static byte[] addPubKeys(byte[] pubKeyA, byte[] pubKeyB){
-        return addPoints(pubKeyA, pubKeyB);
-    }
-
-    public static byte[] addPoints(byte[] pointA, byte[] pointB){
+    public static byte[] addPubKeys(byte[] pointA, byte[] pointB){
         long [] [] a = new long [4] [];
         a[0] = new long [16];
         a[1] = new long [16];

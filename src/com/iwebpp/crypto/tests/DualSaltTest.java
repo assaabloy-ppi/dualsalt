@@ -21,7 +21,7 @@ public class DualSaltTest {
 
         Log.d( TAG, "A public key: " + TweetNaclFast.hexEncodeToString(pubKeyA));
         Log.d( TAG, "B public key: " + TweetNaclFast.hexEncodeToString(pubKeyB));
-        byte[] pubKeyAB1 = DualSalt.addPoints(pubKeyA, pubKeyB);
+        byte[] pubKeyAB1 = DualSalt.addPubKeys(pubKeyA, pubKeyB);
         if (pubKeyAB1 == null){
             Log.d( TAG, "Fail, Could not add keys");
             return;
@@ -45,7 +45,7 @@ public class DualSaltTest {
         DualSalt.createKey(pubKeyA, secKeyA, rand1);
         DualSalt.createKey(pubKeyB, secKeyB, rand2);
 
-        byte[] pubKeyAB1 = DualSalt.addPoints(pubKeyA, pubKeyB);
+        byte[] pubKeyAB1 = DualSalt.addPubKeys(pubKeyA, pubKeyB);
         if (pubKeyAB1 == null){
             Log.d( TAG, "Fail, Could not add keys");
             throw new Exception();
@@ -70,7 +70,7 @@ public class DualSaltTest {
         }
 
 
-        byte[] pubKeyAB2 = DualSalt.addPoints(pubKeyA2, pubKeyB2);
+        byte[] pubKeyAB2 = DualSalt.addPubKeys(pubKeyA2, pubKeyB2);
         if (pubKeyAB2 == null){
             Log.d( TAG, "Fail, Could not add keys");
             throw new Exception();
