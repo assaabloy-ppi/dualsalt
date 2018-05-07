@@ -9,10 +9,15 @@ public class DualSaltTest {
 
     private static final String TAG = "DualSaltTest";
 
-    private void testKeyAddition(byte[] secKeyA, byte[] secKeyB){
+    private void testKeyAddition(byte[] rand1, byte[] rand2){
         System.out.println("\nTest key addition");
-        byte[] pubKeyA = DualSalt.calculatePubKey(secKeyA);
-        byte[] pubKeyB = DualSalt.calculatePubKey(secKeyB);
+
+        byte[] pubKeyA = new byte[32];
+        byte[] pubKeyB = new byte[32];
+        byte[] secKeyA = new byte[64];
+        byte[] secKeyB = new byte[64];
+        DualSalt.createKey(pubKeyA, secKeyA, rand1);
+        DualSalt.createKey(pubKeyB, secKeyB, rand2);
 
         Log.d( TAG, "A public key: " + TweetNaclFast.hexEncodeToString(pubKeyA));
         Log.d( TAG, "B public key: " + TweetNaclFast.hexEncodeToString(pubKeyB));
@@ -30,11 +35,15 @@ public class DualSaltTest {
         Log.d( TAG, "Group public key ok: " + Arrays.equals( pubKeyAB1, pubKeyAB2));
     }
 
-    private void testRotateKeys(byte[] secKeyA, byte[] secKeyB, byte[] rand) throws Exception {
+    private void testRotateKeys(byte[] rand1, byte[] rand2, byte[] rand3) throws Exception {
         System.out.println("\nTest rotate keys");
-        byte[] pubKeyA = DualSalt.calculatePubKey(secKeyA);
-        byte[] pubKeyB = DualSalt.calculatePubKey(secKeyB);
 
+        byte[] pubKeyA = new byte[32];
+        byte[] pubKeyB = new byte[32];
+        byte[] secKeyA = new byte[64];
+        byte[] secKeyB = new byte[64];
+        DualSalt.createKey(pubKeyA, secKeyA, rand1);
+        DualSalt.createKey(pubKeyB, secKeyB, rand2);
 
         byte[] pubKeyAB1 = DualSalt.addPoints(pubKeyA, pubKeyB);
         if (pubKeyAB1 == null){
@@ -44,8 +53,8 @@ public class DualSaltTest {
 
         byte[] pubKeyA2 = new byte[32];
         byte[] pubKeyB2 = new byte[32];
-        DualSalt.rotateKey(pubKeyA2, secKeyA, rand, true, new byte[32]);
-        DualSalt.rotateKey(pubKeyB2, secKeyB, rand, false, new byte[32]);
+        DualSalt.rotateKey(pubKeyA2, secKeyA, rand3, true, new byte[32]);
+        DualSalt.rotateKey(pubKeyB2, secKeyB, rand3, false, new byte[32]);
 
         if (Arrays.equals(pubKeyA, pubKeyB) ||
                 Arrays.equals(pubKeyA, pubKeyA2) ||
@@ -55,7 +64,7 @@ public class DualSaltTest {
                 Arrays.equals(pubKeyA2, pubKeyB2)) {
             Log.d(TAG, "A2 secret key: " + TweetNaclFast.hexEncodeToString(secKeyA));
             Log.d(TAG, "B2 secret key: " + TweetNaclFast.hexEncodeToString(secKeyB));
-            Log.d(TAG, "Rand: " + TweetNaclFast.hexEncodeToString(rand));
+            Log.d(TAG, "Rand: " + TweetNaclFast.hexEncodeToString(rand3));
             Log.d( TAG, "Fail, Some pub keys was the same");
             throw new Exception();
         }
@@ -73,7 +82,7 @@ public class DualSaltTest {
         else {
             Log.d(TAG, "A2 secret key: " + TweetNaclFast.hexEncodeToString(secKeyA));
             Log.d(TAG, "B2 secret key: " + TweetNaclFast.hexEncodeToString(secKeyB));
-            Log.d(TAG, "Rand: " + TweetNaclFast.hexEncodeToString(rand));
+            Log.d(TAG, "Rand: " + TweetNaclFast.hexEncodeToString(rand3));
             Log.d(TAG, "Fail, The rotated virtual key did not produce the same pub key ");
             throw new Exception();
         }
@@ -86,21 +95,10 @@ public class DualSaltTest {
             byte[] rand1 = new byte[32];
             byte[] rand2 = new byte[32];
             byte[] rand3 = new byte[32];
-
             TweetNaclFast.randombytes(rand1,32);
             TweetNaclFast.randombytes(rand2,32);
             TweetNaclFast.randombytes(rand3,32);
-
-            byte[] pubKeyA = new byte[32];
-            byte[] pubKeyB = new byte[32];
-
-            byte[] secKeyA = new byte[64];
-            byte[] secKeyB = new byte[64];
-
-            DualSalt.createKey(pubKeyA, secKeyA, rand1);
-            DualSalt.createKey(pubKeyB, secKeyB, rand2);
-
-            testRotateKeys(secKeyA, secKeyB, rand3);
+            testRotateKeys(rand1, rand2, rand3);
         }
     }
 
@@ -113,25 +111,13 @@ public class DualSaltTest {
                 byte[] rand2 = TweetNaclFast.hexDecode("e56f0eef73ade8f79bc1d16a99cbc5e4995afd8c14adb49410ecd957aecc8d02");
                 byte[] rand3 = TweetNaclFast.hexDecode("995afd8c14adb49410ecd957aecc8d02e56f0eef73ade8f79bc1d16a99cbc5e4");
 
-                byte[] pubKeyA = new byte[32];
-                byte[] pubKeyB = new byte[32];
-                byte[] pubKeyC = new byte[32];
+                testKeyAddition(rand1, rand2);
+                testKeyAddition(rand1, rand3);
+                testKeyAddition(rand2, rand3);
 
-                byte[] secKeyA = new byte[64];
-                byte[] secKeyB = new byte[64];
-                byte[] secKeyC = new byte[64];
-
-                DualSalt.createKey(pubKeyA, secKeyA, rand1);
-                DualSalt.createKey(pubKeyB, secKeyB, rand2);
-                DualSalt.createKey(pubKeyC, secKeyC, rand3);
-
-                testKeyAddition(secKeyA, secKeyB);
-                testKeyAddition(secKeyA, secKeyC);
-                testKeyAddition(secKeyB, secKeyC);
-
-                testRotateKeys(secKeyA, secKeyB, rand3);
-                testRotateKeys(secKeyA, secKeyC, rand2);
-                testRotateKeys(secKeyB, secKeyC, rand1);
+                testRotateKeys(rand1, rand2, rand3);
+                testRotateKeys(rand1, rand3, rand2);
+                testRotateKeys(rand2, rand3, rand1);
 
                 testDistributedDecryptionStress(1000);
 
