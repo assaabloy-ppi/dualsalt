@@ -124,6 +124,58 @@ public class DualSaltTest {
         }
     }
 
+    private void testSubtractPubKey(byte[] rand1, byte[] rand2) throws Exception {
+        System.out.println("\nTest subtract pub key");
+        byte[] pubKeyA = new byte[32];
+        byte[] pubKeyB = new byte[32];
+        byte[] secKeyA = new byte[64];
+        byte[] secKeyB = new byte[64];
+        DualSalt.createKey(pubKeyA, secKeyA, rand1);
+        DualSalt.createKey(pubKeyB, secKeyB, rand2);
+        byte[] pubKeyC = DualSalt.addPubKeys(pubKeyA, pubKeyB);
+        byte[] pubKeyA2 = DualSalt.subtractPubKeys(pubKeyC, pubKeyB);
+        byte[] pubKeyB2 = DualSalt.subtractPubKeys(pubKeyC, pubKeyA);
+        if (Arrays.equals(pubKeyA, pubKeyA2) &&
+            Arrays.equals(pubKeyB, pubKeyB2)){
+            Log.d(TAG, "Success! The add and subtract did produce the same public key");
+        }
+        else {
+            Log.d(TAG, "Random 1 key: " + TweetNaclFast.hexEncodeToString(rand1));
+            Log.d(TAG, "Random 2 key: " + TweetNaclFast.hexEncodeToString(rand2));
+            Log.d(TAG, "Fail, The add and subtract did not produce the same public key");
+            throw new Exception();
+        }
+    }
+
+    private void testDualSign(byte[] rand1, byte[] rand2, String testString ) throws Exception {
+        System.out.println("\nTest single sign");
+
+        byte[] pubKeyA = new byte[32];
+        byte[] pubKeyB = new byte[32];
+        byte[] secKeyA = new byte[64];
+        byte[] secKeyB = new byte[64];
+        DualSalt.createKey(pubKeyA, secKeyA, rand1);
+        DualSalt.createKey(pubKeyB, secKeyB, rand2);
+        byte[] message = testString.getBytes();
+
+        byte[] virtualPublicKey = DualSalt.addPubKeys(pubKeyA, pubKeyB);
+
+        byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, secKeyA);
+        byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB);
+        byte[] signature = DualSalt.signCreateDual3(m1, m2, pubKeyA, secKeyA);
+
+        boolean result = DualSalt.signVerify(signature, virtualPublicKey);
+        if (result){
+            Log.d(TAG, "Verified signature succeeded");
+        } else {
+            Log.d(TAG, "Rand 1: " + TweetNaclFast.hexEncodeToString(rand1));
+            Log.d(TAG, "Rand 2: " + TweetNaclFast.hexEncodeToString(rand2));
+            Log.d(TAG, "Test string: \"" + testString + "\"");
+            Log.d(TAG, "Verified signature failed");
+            throw new Exception();
+        }
+    }
+
     private void start() {
         (new Thread(() -> {
             Log.d(TAG, "start test");
@@ -146,6 +198,15 @@ public class DualSaltTest {
                 testSingleSign(rand1, "The best signature in the world");
                 testSingleSign(rand2, "The best signature in the all the worlds, You know like all all");
                 testSingleSign(rand3, "There could be only one ultimate signature and this is it. Stop arguing");
+
+                testSubtractPubKey(rand1, rand2);
+                testSubtractPubKey(rand1, rand3);
+                testSubtractPubKey(rand2, rand3);
+
+                testDualSign(rand1, rand2, "The best signature in the world");
+                testDualSign(rand1, rand3, "The best signature in the all the worlds, You know like all all");
+                testDualSign(rand2, rand3, "There could be only one ultimate signature and this is it. Stop arguing");
+
 
             } catch (Exception e) {
                 e.printStackTrace();

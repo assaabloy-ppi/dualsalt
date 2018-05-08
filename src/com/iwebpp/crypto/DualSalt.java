@@ -1,7 +1,7 @@
 package com.iwebpp.crypto;
 
 public class DualSalt {
-    public static void createKey(byte[] publicKey, byte[] secretKey, byte[] random){
+    public static void createKey(byte[] publicKey, byte[] secretKey, byte[] random) {
         int i;
         TweetNaclFast.crypto_hash(secretKey, random, 0, 32);
         secretKey[0] &= 248;
@@ -9,82 +9,92 @@ public class DualSalt {
         secretKey[31] |= 64;
         byte[] tempPublicKey = calculatePubKey(secretKey);
 
-        for (i = 0; i < 32; i ++) publicKey[i] = tempPublicKey[i];
+        for (i = 0; i < 32; i++) publicKey[i] = tempPublicKey[i];
     }
 
-    public static byte[] calculatePubKey(byte[] secretKey){
+    public static byte[] calculatePubKey(byte[] secretKey) {
         byte[] publicKey = new byte[32];
-        long [] [] p = new long [4] [];
-        p[0] = new long [16];
-        p[1] = new long [16];
-        p[2] = new long [16];
-        p[3] = new long [16];
+        long[][] p = new long[4][];
+        p[0] = new long[16];
+        p[1] = new long[16];
+        p[2] = new long[16];
+        p[3] = new long[16];
         TweetNaclFast.scalarbase(p, secretKey, 0);
         TweetNaclFast.pack(publicKey, p);
         return publicKey;
     }
 
-    public static void rotateKey(byte[] publicKey, byte[] secretKey, byte[] random1, boolean first, byte[] random2){
+    public static void rotateKey(byte[] publicKey, byte[] secretKey, byte[] random1, boolean first, byte[] random2) {
         byte[] newScalar;
         int i;
-        if (first){
+        if (first) {
             newScalar = addScalars(secretKey, random1);
         } else {
             newScalar = subtractScalars(secretKey, random1);
         }
-        for (i = 0; i < 32; i ++) secretKey[i] = newScalar[i];
-        for (i = 0; i < 32; i ++) secretKey[32+i] = random2[i];
+        for (i = 0; i < 32; i++) secretKey[i] = newScalar[i];
+        for (i = 0; i < 32; i++) secretKey[32 + i] = random2[i];
         byte[] tempPublicKey = calculatePubKey(secretKey);
-        for (i = 0; i < 32; i ++) publicKey[i] = tempPublicKey[i];
+        for (i = 0; i < 32; i++) publicKey[i] = tempPublicKey[i];
     }
 
-    public static byte[] addScalars(byte[] scalarA, byte[] scalarB){
+    public static byte[] addScalars(byte[] scalarA, byte[] scalarB) {
         int i;
         byte[] scalar = new byte[32];
         long[] temp = new long[64];
-        for (i = 0; i < 64; i ++) temp[i] = 0;
-        for (i = 0; i < 32; i ++) temp[i] = (long) (scalarA[i]&0xff);
-        for (i = 0; i < 32; i ++) temp[i] += (long) (scalarB[i]&0xff);
+        for (i = 0; i < 64; i++) temp[i] = 0;
+        for (i = 0; i < 32; i++) temp[i] = (long) (scalarA[i] & 0xff);
+        for (i = 0; i < 32; i++) temp[i] += (long) (scalarB[i] & 0xff);
 
-        TweetNaclFast.modL(scalar,0, temp);
+        TweetNaclFast.modL(scalar, 0, temp);
 
         return scalar;
     }
 
-    private static byte[] subtractScalars(byte[] scalarA, byte[] scalarB){
+    private static byte[] subtractScalars(byte[] scalarA, byte[] scalarB) {
         int i;
         byte[] scalar = new byte[32];
         long[] temp = new long[64];
-        for (i = 0; i < 64; i ++) temp[i] = 0;
-        for (i = 0; i < 32; i ++) temp[i] = (long) (scalarA[i]&0xff);
-        for (i = 0; i < 32; i ++) temp[i] -= (long) (scalarB[i]&0xff);
+        for (i = 0; i < 64; i++) temp[i] = 0;
+        for (i = 0; i < 32; i++) temp[i] = (long) (scalarA[i] & 0xff);
+        for (i = 0; i < 32; i++) temp[i] -= (long) (scalarB[i] & 0xff);
 
-        TweetNaclFast.modL(scalar,0, temp);
+        TweetNaclFast.modL(scalar, 0, temp);
 
         return scalar;
     }
-    public static byte[] addPubKeys(byte[] pointA, byte[] pointB){
-        long [] [] a = new long [4] [];
-        a[0] = new long [16];
-        a[1] = new long [16];
-        a[2] = new long [16];
-        a[3] = new long [16];
 
-        long [] [] b = new long [4] [];
-        b[0] = new long [16];
-        b[1] = new long [16];
-        b[2] = new long [16];
-        b[3] = new long [16];
+    public static byte[] addPubKeys(byte[] pointA, byte[] pointB) {
+        long[][] a = new long[4][];
+        a[0] = new long[16];
+        a[1] = new long[16];
+        a[2] = new long[16];
+        a[3] = new long[16];
+
+        long[][] b = new long[4][];
+        b[0] = new long[16];
+        b[1] = new long[16];
+        b[2] = new long[16];
+        b[3] = new long[16];
         if (unpack(a, pointA) != 0) return null;
         if (unpack(b, pointB) != 0) return null;
 
-        TweetNaclFast.add(a,b);
+        TweetNaclFast.add(a, b);
 
         byte[] pointR = new byte[32];
         TweetNaclFast.pack(pointR, a);
 
         return pointR;
     }
+
+    public static byte[] subtractPubKeys(byte[] pointA, byte[] pointB) {
+        int i;
+        byte[] temp = new byte[32];
+        for (i = 0; i < 32; i++) temp[i] = pointB[i];
+        temp[31] = (byte) (temp[31] ^ 0x80);
+        return addPubKeys(pointA, temp);
+    }
+
 
     private static int unpack(long[] r[], byte p[])
     {
@@ -100,11 +110,7 @@ public class DualSalt {
         return 0;
     }
 
-// Signing
-
-// M1 = sign1(m, C, a)
-// M2 = sign2(M1, b)
-// (R,s) = sign3(M1, M2, a)
+    // Signing
 
     public static void signCreate(byte [] signature, byte [] message, byte [] publicKey, byte [] secretKey)    {
 
@@ -155,7 +161,7 @@ public class DualSalt {
 
     M2 = sign2(M1, b){
         (Ra, C, M) = M1
-                rb = H(b(32:64)||m)
+        rb = H(b(32:64)||m)
         Rb = rb*P
         R = Ra + Rb
         h = H(R||C||m)
@@ -165,7 +171,7 @@ public class DualSalt {
 
 (R, s) = sign3(M1, M2, a, A){
         (Ra, C, M) = M1
-                (Rb, sb) = M2
+        (Rb, sb) = M2
         R = Ra + Rb
         h = H(R||C||m)
         B = C - A
@@ -174,7 +180,142 @@ public class DualSalt {
         sa = ra + h*a(0:31)
         s = sa + sb
         return (R, s)
+    }*/
+
+    public static byte[] signCreateDual1(byte[] message, byte[]  virtualPublicKey, byte[] secretKeyA){
+        byte[] m1 = new byte[64+message.length];
+        int i;
+        for (i = 0; i < 32; i ++) m1[i] = virtualPublicKey[i];
+
+        byte[] pseudoRandomA = calculateRand(message, secretKeyA);
+        byte[] randomPointA = calculatePubKey(pseudoRandomA);
+        for (i = 0; i < 32; i ++) m1[32+i] = randomPointA[i];
+
+        for (i = 0; i < message.length; i ++) m1[64+i] = message[i];
+        return m1;
     }
+
+    public static byte[] signCreateDual2( byte[] m1, byte[] secretKeyB){
+        byte[] m2 = new byte[64];
+        byte[] virtualPublicKey = new byte[32];
+        byte[] randomPointA = new byte[32];
+        byte[] message = new byte[m1.length - 64];
+        int i;
+
+        for (i = 0; i < 32; i ++) virtualPublicKey[i] = m1[i];
+        for (i = 0; i < 32; i ++) randomPointA[i] = m1[32+i];
+        for (i = 0; i < message.length; i ++) message[i] = m1[64+i];
+
+        byte[] pseudoRandomB = calculateRand(message, secretKeyB);
+        byte[] randomPointB = calculatePubKey(pseudoRandomB);
+        byte[] randomPoint = addPubKeys(randomPointA, randomPointB);
+        if (randomPoint == null){
+            return null;
+        }
+        for (i = 0; i < 32; i ++) m2[i] = randomPointB[i];
+
+        byte[] hash = calculateHash(randomPoint, virtualPublicKey, message);
+        byte[] signatureB = calculateSignature( pseudoRandomB, hash, secretKeyB);
+
+        for (i = 0; i < 32; i ++) { m2[32+i] = signatureB[i]; }
+        return m2;
+    }
+
+    public static byte[] signCreateDual3( byte[] m1, byte[] m2, byte[] publicKeyA, byte[] secretKeyA){
+        byte[] virtualPublicKey = new byte[32];
+        byte[] message = new byte[m1.length - 64];
+        byte[] randomPointB = new byte[32];
+        byte[] signatureB = new byte[32];
+        int i;
+
+        for (i = 0; i < 32; i ++) virtualPublicKey[i] = m1[i];
+        for (i = 0; i < message.length; i ++) message[i] = m1[64+i];
+        for (i = 0; i < 32; i ++) randomPointB[i] = m2[i];
+        for (i = 0; i < 32; i ++) signatureB[i] = m2[32+i];
+
+        // Repeat signCreateDual1
+        byte[] pseudoRandomA = calculateRand(message, secretKeyA);
+        byte[] randomPointA = calculatePubKey(pseudoRandomA);
+        byte[] randomPoint = addPubKeys(randomPointA, randomPointB);
+        if (randomPoint == null) return null;
+
+        byte[] hash = calculateHash(randomPoint, virtualPublicKey, message);
+        byte[] publicKeyB = subtractPubKeys(virtualPublicKey, publicKeyA);
+        if (validateSignatureSpecial(publicKeyB, randomPointB, signatureB, hash)) return null;
+
+        byte[] signatureA = calculateSignature( pseudoRandomA, hash, secretKeyA);
+        byte[] signature = addScalars(signatureA, signatureB);
+
+        byte[] sing = new byte[64 + message.length];
+        for (i = 0; i < 32; i ++) { sing[i] = randomPoint[i]; }
+        for (i = 0; i < 32; i ++) { sing[32+i] = signature[i]; }
+        for (i = 0; i < message.length; i ++) { sing[64+i] = message[i]; }
+        return sing;
+    }
+
+    private static byte[] calculateRand(byte [] message, byte [] secretKey){
+
+        byte[] rand = new byte[64]; // 64 instead of 32. Reduction in the end
+        int i;
+        byte [] tempBuffer = new byte[32 + message.length];
+
+        for (i = 0; i < 32; i ++) tempBuffer[i] = secretKey[i+32];
+        for (i = 0; i < message.length; i ++) tempBuffer[32 + i] = message[i];
+
+        TweetNaclFast.crypto_hash(rand, tempBuffer,0, 32 + message.length);
+        TweetNaclFast.reduce(rand);
+        return rand;
+    }
+
+    private static byte[] calculateHash(byte [] randomPoint, byte [] publicKey, byte [] message){
+        int i;
+        byte[] hash = new byte[64]; // 64 instead of 32. Reduction in the end
+        byte [] tempBuffer = new byte[64 + message.length];
+        for (i = 0; i < 32; i ++) { tempBuffer[i] = randomPoint[i]; }
+        for (i = 0; i < 32; i ++) { tempBuffer[32+i] = publicKey[i]; }
+        for (i = 0; i < message.length; i ++) { tempBuffer[64+i] = message[i]; }
+        TweetNaclFast.crypto_hash(hash, tempBuffer,0, 64 + message.length);
+        TweetNaclFast.reduce(hash);
+        return hash;
+    }
+
+    private static byte[] calculateSignature(byte [] rand, byte [] hash, byte [] secretKey){
+        byte[] signature = new byte[32];
+
+        int i, j;
+        long [] x = new long[64];
+        for (i = 0; i < 64; i ++) x[i] = 0;
+        for (i = 0; i < 32; i ++) x[i] = (long) (rand[i]&0xff);
+        for (i = 0; i < 32; i ++) for (j = 0; j < 32; j ++) x[i+j] += (hash[i]&0xff) * (long) (secretKey[j]&0xff);
+        TweetNaclFast.modL(signature,0, x);
+        return signature;
+    }
+
+    private static boolean validateSignatureSpecial(byte[] publicKey, byte[] randomPoint, byte[] signature, byte[] hash) {
+        long [] [] p = new long [4] [];
+        p[0] = new long [16];
+        p[1] = new long [16];
+        p[2] = new long [16];
+        p[3] = new long [16];
+
+        long [] [] q = new long [4] [];
+        q[0] = new long [16];
+        q[1] = new long [16];
+        q[2] = new long [16];
+        q[3] = new long [16];
+
+        byte[] t = new byte[32];
+
+        if (TweetNaclFast.unpackneg(q, publicKey)!=0) return true;
+        TweetNaclFast.scalarmult(p,q, hash,0);
+        TweetNaclFast.scalarbase(q, signature,0);
+        TweetNaclFast.add(p,q);
+        TweetNaclFast.pack(t,p);
+        return TweetNaclFast.crypto_verify_32(randomPoint, 0, t, 0) != 0;
+    }
+
+
+    /*
 
 // Encrypt and Decryption
 
