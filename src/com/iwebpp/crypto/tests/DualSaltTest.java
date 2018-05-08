@@ -88,8 +88,8 @@ public class DualSaltTest {
         }
     }
 
-    private void testDistributedDecryptionStress() throws Exception {
-        System.out.println("\nTest distributed decryption stress");
+    private void testRotateKeysStress() throws Exception {
+        System.out.println("\nTest rotate keys stress");
 
         for (int index = 0; index< 1000; index++) {
             byte[] rand1 = new byte[32];
@@ -164,6 +164,14 @@ public class DualSaltTest {
         byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB);
         byte[] signature = DualSalt.signCreateDual3(m1, m2, pubKeyA, secKeyA);
 
+        if (signature == null) {
+            Log.d(TAG, "Rand 1: " + TweetNaclFast.hexEncodeToString(rand1));
+            Log.d(TAG, "Rand 2: " + TweetNaclFast.hexEncodeToString(rand2));
+            Log.d(TAG, "Test string: \"" + testString + "\"");
+            Log.d(TAG, "Verified signature is null");
+            throw new Exception();
+        }
+
         boolean result = DualSalt.signVerify(signature, virtualPublicKey);
         if (result){
             Log.d(TAG, "Verified signature succeeded");
@@ -173,6 +181,18 @@ public class DualSaltTest {
             Log.d(TAG, "Test string: \"" + testString + "\"");
             Log.d(TAG, "Verified signature failed");
             throw new Exception();
+        }
+    }
+
+    private void testDualSignStress() throws Exception {
+        System.out.println("\nTest dual sign stress");
+
+        for (int index = 0; index< 1000; index++) {
+            byte[] rand1 = new byte[32];
+            byte[] rand2 = new byte[32];
+            TweetNaclFast.randombytes(rand1,32);
+            TweetNaclFast.randombytes(rand2,32);
+            testDualSign(rand1, rand2, "Sen vart det bara en tummetott");
         }
     }
 
@@ -193,7 +213,7 @@ public class DualSaltTest {
                 testRotateKeys(rand1, rand3, rand2);
                 testRotateKeys(rand2, rand3, rand1);
 
-                //testDistributedDecryptionStress();
+                //testRotateKeysStress();
 
                 testSingleSign(rand1, "The best signature in the world");
                 testSingleSign(rand2, "The best signature in the all the worlds, You know like all all");
@@ -207,6 +227,7 @@ public class DualSaltTest {
                 testDualSign(rand1, rand3, "The best signature in the all the worlds, You know like all all");
                 testDualSign(rand2, rand3, "There could be only one ultimate signature and this is it. Stop arguing");
 
+                testDualSignStress();
 
             } catch (Exception e) {
                 e.printStackTrace();
