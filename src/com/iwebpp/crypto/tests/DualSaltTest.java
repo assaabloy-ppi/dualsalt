@@ -196,6 +196,62 @@ public class DualSaltTest {
         }
     }
 
+    private void testSingleDecrypt(byte[] rand1, byte[] rand2, byte[] rand3, String testString ) throws Exception {
+        System.out.println("\nTest single decrypt");
+
+        byte[] nonce = new byte[24];
+        byte[] pubKey = new byte[32];
+        byte[] secKey = new byte[64];
+        DualSalt.createKey(pubKey, secKey, rand1);
+        byte[] message = testString.getBytes();
+
+        byte[] cipherMessage = DualSalt.encrypt(message, rand2, pubKey, rand3);
+
+        if (cipherMessage == null) {
+            Log.d(TAG, "Rand 1: " + TweetNaclFast.hexEncodeToString(rand1));
+            Log.d(TAG, "Rand 2: " + TweetNaclFast.hexEncodeToString(rand2));
+            Log.d(TAG, "Rand 3: " + TweetNaclFast.hexEncodeToString(rand3));
+            Log.d(TAG, "Test string: \"" + testString + "\"");
+            Log.d(TAG, "Decrypt message failed");
+            throw new Exception();
+        }
+        Log.d(TAG, "Cipher message:  " + TweetNaclFast.hexEncodeToString(cipherMessage));
+
+        byte[] decryptedMessage = DualSalt.decrypt(nonce, cipherMessage, secKey);
+
+        if (Arrays.equals(rand2, nonce) &&
+            Arrays.equals(message, decryptedMessage)){
+            Log.d(TAG, "Decrypt message succeeded");
+        } else {
+
+            Log.d(TAG, "Nonce:  " + TweetNaclFast.hexEncodeToString(nonce));
+            Log.d(TAG, "Rand 2: " + TweetNaclFast.hexEncodeToString(rand2));
+            Log.d(TAG, "Message:  " + TweetNaclFast.hexEncodeToString(message));
+            Log.d(TAG, "DMessage: " + TweetNaclFast.hexEncodeToString(decryptedMessage));
+
+            Log.d(TAG, "Rand 1: " + TweetNaclFast.hexEncodeToString(rand1));
+            Log.d(TAG, "Rand 2: " + TweetNaclFast.hexEncodeToString(rand2));
+            Log.d(TAG, "Rand 3: " + TweetNaclFast.hexEncodeToString(rand3));
+            Log.d(TAG, "Test string: \"" + testString + "\"");
+            Log.d(TAG, "Decrypt message failed");
+            throw new Exception();
+        }
+    }
+
+    private void testSingleDecryptStress() throws Exception {
+        System.out.println("\nTest dual sign stress");
+
+        for (int index = 0; index< 1000; index++) {
+            byte[] rand1 = new byte[32];
+            byte[] rand2 = new byte[24];
+            byte[] rand3 = new byte[32];
+            TweetNaclFast.randombytes(rand1,32);
+            TweetNaclFast.randombytes(rand2,24);
+            TweetNaclFast.randombytes(rand3,32);
+            testSingleDecrypt(rand1, rand2, rand3, "Sen vart det bara en tummetott");
+        }
+    }
+
     private void start() {
         (new Thread(() -> {
             Log.d(TAG, "start test");
@@ -227,7 +283,14 @@ public class DualSaltTest {
                 testDualSign(rand1, rand3, "The best signature in the all the worlds, You know like all all");
                 testDualSign(rand2, rand3, "There could be only one ultimate signature and this is it. Stop arguing");
 
-                testDualSignStress();
+                //testDualSignStress();
+
+                byte[] nonce = TweetNaclFast.hexDecode("10ecd957aecc8d02e56f0eef73ade8f79bc1d16a99cbc5e4");
+                testSingleDecrypt(rand1, nonce, rand2, "The best signature in the world");
+                testSingleDecrypt(rand1, nonce, rand3, "The best signature in the all the worlds, You know like all all");
+                testSingleDecrypt(rand2, nonce, rand3, "There could be only one ultimate signature and this is it. Stop arguing");
+
+                testSingleDecryptStress();
 
             } catch (Exception e) {
                 e.printStackTrace();
