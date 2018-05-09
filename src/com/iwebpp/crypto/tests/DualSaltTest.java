@@ -215,11 +215,11 @@ public class DualSaltTest {
     static void testDualDecrypt(byte[] rand1, byte[] rand2, byte[] rand3, byte[] rand4, String testString) throws Exception {
         System.out.println("\nTest dual decrypt");
 
-        byte[] nonce = new byte[24];
-        byte[] pubKeyA = new byte[32];
-        byte[] pubKeyB = new byte[32];
-        byte[] secKeyA = new byte[64];
-        byte[] secKeyB = new byte[64];
+        byte[] nonce = new byte[DualSalt.nonceLength];
+        byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
+        byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
+        byte[] secKeyA = new byte[DualSalt.secretKeyLength];
+        byte[] secKeyB = new byte[DualSalt.secretKeyLength];
         DualSalt.createKey(pubKeyA, secKeyA, rand1);
         DualSalt.createKey(pubKeyB, secKeyB, rand2);
         byte[] pubKeyAB = DualSalt.addPubKeys(pubKeyA, pubKeyB);
@@ -240,7 +240,6 @@ public class DualSaltTest {
 
         byte[] d1 = DualSalt.decryptDual1(cipherMessage, secKeyA);
         byte[] decryptedMessage = DualSalt.decryptDual2(d1, cipherMessage, nonce, secKeyB);
-
         if (Arrays.equals(rand3, nonce) &&
                 Arrays.equals(message, decryptedMessage)){
             Log.d(TAG, "Decrypt message succeeded");
@@ -300,11 +299,6 @@ public class DualSaltTest {
                 testDualDecrypt(rand1, rand2, nonce, rand3, "The best decryption in the world");
                 testDualDecrypt(rand3, rand1, nonce, rand2, "The best decryption in the all the worlds, You know like all all");
                 testDualDecrypt(rand2, rand3, nonce, rand1, "There could be only one ultimate decryption and this is it. Stop arguing");
-
-                //testRotateKeysStress();
-                //testDualSignStress();
-                //testSingleDecryptStress();
-                //testDualDecryptStress();
 
             } catch (Exception e) {
                 e.printStackTrace();

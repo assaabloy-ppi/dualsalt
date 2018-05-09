@@ -16,15 +16,15 @@ public class DualSalt {
 
     public static final int nonceLength = Box.nonceLength;
 
-    public static final int chipperMessageLength = nonceLength + publicKeyLength;
-
     public static final int seedLength = TweetNaclFast.Signature.seedLength;
 
-    public static final int m1HeaderLength = ScalarMult.groupElementLength + publicKeyLength;
+    private static final int chipperMessageLength = nonceLength + publicKeyLength;
 
-    public static final int m2Length = signatureLength;
+    private static final int m1HeaderLength = ScalarMult.groupElementLength + publicKeyLength;
 
-    public static final int d1HeaderLength = ScalarMult.groupElementLength;
+    private static final int m2Length = signatureLength;
+
+    private static final int d1HeaderLength = ScalarMult.groupElementLength;
 
     public static void createKey(byte[] publicKey, byte[] secretKey, byte[] random) {
         int i;
@@ -280,7 +280,7 @@ public class DualSalt {
 
         byte[] rand = new byte[64]; // 64 instead of 32. Reduction in the end
         int i;
-        byte [] tempBuffer = new byte[32 + message.length];
+        byte [] tempBuffer = new byte[secretRandomLength + message.length];
 
         for (i = 0; i < secretRandomLength; i ++) tempBuffer[i] = secretKey[ScalarMult.scalarLength + i];
         for (i = 0; i < message.length; i ++) tempBuffer[secretRandomLength + i] = message[i];
@@ -293,11 +293,11 @@ public class DualSalt {
     private static byte[] calculateHash(byte [] randomPoint, byte [] publicKey, byte [] message){
         int i;
         byte[] hash = new byte[64]; // 64 instead of 32. Reduction in the end
-        byte [] tempBuffer = new byte[64 + message.length];
-        for (i = 0; i < 32; i ++) { tempBuffer[i] = randomPoint[i]; }
-        for (i = 0; i < 32; i ++) { tempBuffer[32+i] = publicKey[i]; }
-        for (i = 0; i < message.length; i ++) { tempBuffer[64+i] = message[i]; }
-        TweetNaclFast.crypto_hash(hash, tempBuffer,0, 64 + message.length);
+        byte [] tempBuffer = new byte[ScalarMult.groupElementLength + publicKeyLength + message.length];
+        for (i = 0; i < ScalarMult.groupElementLength; i ++) { tempBuffer[i] = randomPoint[i]; }
+        for (i = 0; i < publicKeyLength; i ++) { tempBuffer[ScalarMult.groupElementLength+i] = publicKey[i]; }
+        for (i = 0; i < message.length; i ++) { tempBuffer[ScalarMult.groupElementLength + publicKeyLength + i] = message[i]; }
+        TweetNaclFast.crypto_hash(hash, tempBuffer,0, tempBuffer.length);
         TweetNaclFast.reduce(hash);
         return hash;
     }
@@ -341,10 +341,10 @@ public class DualSalt {
 
     public static byte[] encrypt(byte[] message, byte[] nonce, byte[] toPublicKey, byte[] random){
         int i;
-        byte[] tempPublicKey = new byte[32];
-        byte[] tempSecretKey = new byte[64];
-        byte[] pointAB = new byte[32];
-        byte[] sharedKey = new byte[32];
+        byte[] tempPublicKey = new byte[publicKeyLength];
+        byte[] tempSecretKey = new byte[secretKeyLength];
+        byte[] pointAB = new byte[ScalarMult.groupElementLength];
+        byte[] sharedKey = new byte[Box.sharedKeyLength];
         createKey(tempPublicKey, tempSecretKey, random);
 
         long[][] p = new long[4][];
@@ -366,19 +366,19 @@ public class DualSalt {
         byte [] cipherText = new byte[messageBuffer.length];
         for (i = 0; i < message.length; i ++) messageBuffer[i+Box.zerobytesLength] = message[i];
         TweetNaclFast.crypto_box_afternm(cipherText, messageBuffer, messageBuffer.length, nonce, sharedKey);
-        byte [] cipherMessage = new byte[nonceLength+32+messageBuffer.length-Box.boxzerobytesLength];
-        for (i = 0; i < Box.nonceLength; i ++) { cipherMessage[i] = nonce[i]; }
-        for (i = 0; i < 32; i ++) { cipherMessage[i+nonceLength] = tempPublicKey[i]; }
+        byte [] cipherMessage = new byte[chipperMessageLength+messageBuffer.length-Box.boxzerobytesLength];
+        for (i = 0; i < nonceLength; i ++) { cipherMessage[i] = nonce[i]; }
+        for (i = 0; i < publicKeyLength; i ++) { cipherMessage[i+nonceLength] = tempPublicKey[i]; }
         for (i = 0; i < messageBuffer.length-Box.boxzerobytesLength; i ++) {
-            cipherMessage[i+nonceLength+32] = cipherText[Box.boxzerobytesLength+i];
+            cipherMessage[i+chipperMessageLength] = cipherText[Box.boxzerobytesLength+i];
         }
         return cipherMessage;
     }
 
     public static byte[] decrypt(byte[] cipherMessage, byte[] nonce, byte[] secretKey){
         int i;
-        byte[] cipherText = new byte[cipherMessage.length-nonceLength-32];
-        for (i = 0; i < cipherText.length; i ++) { cipherText[i] = cipherMessage[i+nonceLength+32]; }
+        byte[] cipherText = new byte[cipherMessage.length-chipperMessageLength];
+        for (i = 0; i < cipherText.length; i ++) { cipherText[i] = cipherMessage[i+chipperMessageLength]; }
         for (i = 0; i < nonceLength; i ++) { nonce[i] = cipherMessage[i]; }
 
         byte[] pointAB = decryptDual1(cipherMessage, secretKey);
@@ -386,7 +386,7 @@ public class DualSalt {
     }
 
     private static byte[] decryptMessage( byte[] cipherText, byte[] nonce, byte[] point) {
-        byte[] sharedKey = new byte[32];
+        byte[] sharedKey = new byte[Box.sharedKeyLength];
         int i;
         TweetNaclFast.crypto_core_hsalsa20(sharedKey, TweetNaclFast._0, point, TweetNaclFast.sigma);
         byte [] cipherBuffer = new byte[Box.boxzerobytesLength+cipherText.length];
@@ -400,9 +400,9 @@ public class DualSalt {
 
     public static byte[] decryptDual1(byte[] cipherMessage, byte[] secretKey){
         int i;
-        byte[] pointAB = new byte[32];
-        byte[] tempPublicKey = new byte[32];
-        for (i = 0; i < 32; i ++) { tempPublicKey[i] = cipherMessage[i+nonceLength]; }
+        byte[] point = new byte[d1HeaderLength];
+        byte[] tempPublicKey = new byte[publicKeyLength];
+        for (i = 0; i < publicKeyLength; i ++) { tempPublicKey[i] = cipherMessage[i+nonceLength]; }
 
         long[][] p = new long[4][];
         p[0] = new long[16];
@@ -417,18 +417,18 @@ public class DualSalt {
 
         if (unpack(q, tempPublicKey)!=0) return null;
         TweetNaclFast.scalarmult(p, q, secretKey, 0);
-        TweetNaclFast.pack(pointAB, p);
-        return pointAB;
+        TweetNaclFast.pack(point, p);
+        return point;
     }
 
     public static byte[] decryptDual2(byte[] d1, byte[] cipherMessage, byte[] nonce, byte[] secretKey){
         int i;
-        byte[] tempPublicKey = new byte[32];
-        byte[] point = new byte[32];
-        byte[] cipherText = new byte[cipherMessage.length-nonceLength-32];
+        byte[] tempPublicKey = new byte[publicKeyLength];
+        byte[] point = new byte[ScalarMult.groupElementLength];
+        byte[] cipherText = new byte[cipherMessage.length-chipperMessageLength];
         for (i = 0; i < nonceLength; i ++) { nonce[i] = cipherMessage[i]; }
-        for (i = 0; i < 32; i ++) { tempPublicKey[i] = cipherMessage[i+nonceLength]; }
-        for (i = 0; i < cipherText.length; i ++) { cipherText[i] = cipherMessage[i+nonceLength+32]; }
+        for (i = 0; i < publicKeyLength; i ++) { tempPublicKey[i] = cipherMessage[i+nonceLength]; }
+        for (i = 0; i < cipherText.length; i ++) { cipherText[i] = cipherMessage[i+chipperMessageLength]; }
 
         long[][] p = new long[4][];
         p[0] = new long[16];
