@@ -1,6 +1,6 @@
 package com.iwebpp.crypto;
 
-import com.iwebpp.crypto.tests.Log;
+import com.iwebpp.crypto.TweetNaclFast.Box;
 
 public class DualSalt {
     public static void createKey(byte[] publicKey, byte[] secretKey, byte[] random) {
@@ -97,7 +97,6 @@ public class DualSalt {
         return addPubKeys(pointA, temp);
     }
 
-
     private static int unpack(long[] r[], byte p[])
     {
         int result = TweetNaclFast.unpackneg(r, p);
@@ -154,7 +153,7 @@ public class DualSalt {
         return TweetNaclFast.crypto_sign_open(tmp, 0, signature, 0, signature.length, publicKey)==0;
     }
 
-/*
+    /*
     M1 = sing1(m, C, a){
         ra = H(a(a(32:64))||m)
         Ra = ra*P
@@ -171,7 +170,7 @@ public class DualSalt {
         return (Rb, sb)
     }
 
-(R, s) = sign3(M1, M2, a, A){
+    (R, s) = sign3(M1, M2, a, A){
         (Ra, C, M) = M1
         (Rb, sb) = M2
         R = Ra + Rb
@@ -316,18 +315,8 @@ public class DualSalt {
         return TweetNaclFast.crypto_verify_32(randomPoint, 0, t, 0) != 0;
     }
 
+    // Encrypt and Decryption
 
-// Encrypt and Decryption
-
-
-    private static final int zerobytesLength = 32;
-    private static final int boxzerobytesLength = 16;
-    /*
-    CT = encrypt(msg, nonce, toPub, rand){
-        createKey(PK, sk, rand)
-        share = sk(0:31)*toPub
-        return (PK, symetricCrypto(share, msg, nonce))
-    }*/
     public static byte[] encrypt(byte[] message, byte[] nonce, byte[] toPublicKey, byte[] random){
         int i;
         byte[] tempPublicKey = new byte[32];
@@ -351,27 +340,69 @@ public class DualSalt {
         TweetNaclFast.scalarmult(p, q, tempSecretKey, 0);
         TweetNaclFast.pack(pointAB, p);
         TweetNaclFast.crypto_core_hsalsa20(sharedKey, TweetNaclFast._0, pointAB, TweetNaclFast.sigma);
-        byte [] messageBuffer = new byte[zerobytesLength+message.length];
+        byte [] messageBuffer = new byte[Box.zerobytesLength+message.length];
         byte [] cipherText = new byte[messageBuffer.length];
-        for (i = 0; i < message.length; i ++) messageBuffer[i+zerobytesLength] = message[i];
+        for (i = 0; i < message.length; i ++) messageBuffer[i+Box.zerobytesLength] = message[i];
         TweetNaclFast.crypto_box_afternm(cipherText, messageBuffer, messageBuffer.length, nonce, sharedKey);
-        byte [] cipherMessage = new byte[24+32+messageBuffer.length-boxzerobytesLength];
+        byte [] cipherMessage = new byte[24+32+messageBuffer.length-Box.boxzerobytesLength];
         for (i = 0; i < 24; i ++) { cipherMessage[i] = nonce[i]; }
         for (i = 0; i < 32; i ++) { cipherMessage[i+24] = tempPublicKey[i]; }
-        for (i = 0; i < messageBuffer.length-boxzerobytesLength; i ++) { cipherMessage[i+24+32] = cipherText[boxzerobytesLength+i]; }
+        for (i = 0; i < messageBuffer.length-Box.boxzerobytesLength; i ++) {
+            cipherMessage[i+24+32] = cipherText[Box.boxzerobytesLength+i];
+        }
         return cipherMessage;
     }
 
-    /*
-    D1 = decrypt1(CT, a){
-        (PKx, c) = CT
-        return a(0:31)*PKx
-    }*/
     public static byte[] decrypt(byte[] nonce, byte[] cipherMessage, byte[] secretKey){
         int i;
-        byte[] pointAB = new byte[32];
+        byte[] cipherText = new byte[cipherMessage.length-24-32];
+        for (i = 0; i < cipherText.length; i ++) { cipherText[i] = cipherMessage[i+24+32]; }
+        for (i = 0; i < 24; i ++) { nonce[i] = cipherMessage[i]; }
+
+        byte[] pointAB = decryptDual1(cipherMessage, secretKey);
+        return decryptMessage(nonce, pointAB, cipherText);
+    }
+
+    private static byte[] decryptMessage(byte[] nonce, byte[] pointAB, byte[] cipherText) {
         byte[] sharedKey = new byte[32];
+        int i;
+        TweetNaclFast.crypto_core_hsalsa20(sharedKey, TweetNaclFast._0, pointAB, TweetNaclFast.sigma);
+        byte [] cipherBuffer = new byte[Box.boxzerobytesLength+cipherText.length];
+        byte [] messageBuffer = new byte[cipherBuffer.length];
+        for (i = 0; i < cipherText.length; i ++) cipherBuffer[i+Box.boxzerobytesLength] = cipherText[i];
+        TweetNaclFast.crypto_box_open_afternm(messageBuffer, cipherBuffer, cipherBuffer.length, nonce, sharedKey);
+        byte [] message = new byte[messageBuffer.length-Box.zerobytesLength];
+        for (i = 0; i < message.length; i ++) message[i] = messageBuffer[i+Box.zerobytesLength];
+        return message;
+    }
+
+    public static byte[] decryptDual1(byte[] cipherMessage, byte[] secretKey){
+        int i;
+        byte[] pointAB = new byte[32];
         byte[] tempPublicKey = new byte[32];
+        for (i = 0; i < 32; i ++) { tempPublicKey[i] = cipherMessage[i+24]; }
+
+        long[][] p = new long[4][];
+        p[0] = new long[16];
+        p[1] = new long[16];
+        p[2] = new long[16];
+        p[3] = new long[16];
+        long[][] q = new long[4][];
+        q[0] = new long[16];
+        q[1] = new long[16];
+        q[2] = new long[16];
+        q[3] = new long[16];
+
+        if (unpack(q, tempPublicKey)!=0) return null;
+        TweetNaclFast.scalarmult(p, q, secretKey, 0);
+        TweetNaclFast.pack(pointAB, p);
+        return pointAB;
+    }
+
+    public static byte[] decryptDual2(byte[] nonce, byte[] cipherMessage, byte[] d1, byte[] secretKey){
+        int i;
+        byte[] tempPublicKey = new byte[32];
+        byte[] point = new byte[32];
         byte[] cipherText = new byte[cipherMessage.length-24-32];
         for (i = 0; i < 24; i ++) { nonce[i] = cipherMessage[i]; }
         for (i = 0; i < 32; i ++) { tempPublicKey[i] = cipherMessage[i+24]; }
@@ -390,30 +421,11 @@ public class DualSalt {
 
         if (unpack(q, tempPublicKey)!=0) return null;
         TweetNaclFast.scalarmult(p, q, secretKey, 0);
-        TweetNaclFast.pack(pointAB, p);
-        TweetNaclFast.crypto_core_hsalsa20(sharedKey, TweetNaclFast._0, pointAB, TweetNaclFast.sigma);
-        byte [] cipherBuffer = new byte[boxzerobytesLength+cipherText.length];
-        byte [] messageBuffer = new byte[cipherBuffer.length];
-        for (i = 0; i < cipherText.length; i ++) cipherBuffer[i+boxzerobytesLength] = cipherText[i];
-        TweetNaclFast.crypto_box_open_afternm(messageBuffer, cipherBuffer, cipherBuffer.length, nonce, sharedKey);
-        byte [] message = new byte[messageBuffer.length-zerobytesLength];
-        for (i = 0; i < message.length; i ++) message[i] = messageBuffer[i+zerobytesLength];
-        return message;
+
+        if (unpack(q, d1)!=0) return null;
+        TweetNaclFast.add(p, q);
+        TweetNaclFast.pack(point, p);
+
+        return decryptMessage(nonce, point, cipherText);
     }
-
-/*
-    (msg, nonce) = decrypt2(CT, D1, b){
-        (PKx, c) = CT
-        share = b(0:31)*PKx + D1
-        return symetricCrypto(share, c)
-    }
-
-    (msg, nonce) = decrypt(CT, a){
-        (PKx, c) = CT
-        share = a(0:31)*PKx
-        return symetricCrypto(share, c)
-    }
-
-
-    */
 }
