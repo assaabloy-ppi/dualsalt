@@ -353,20 +353,20 @@ public class DualSalt {
         return cipherMessage;
     }
 
-    public static byte[] decrypt(byte[] nonce, byte[] cipherMessage, byte[] secretKey){
+    public static byte[] decrypt(byte[] cipherMessage, byte[] nonce, byte[] secretKey){
         int i;
         byte[] cipherText = new byte[cipherMessage.length-24-32];
         for (i = 0; i < cipherText.length; i ++) { cipherText[i] = cipherMessage[i+24+32]; }
         for (i = 0; i < 24; i ++) { nonce[i] = cipherMessage[i]; }
 
         byte[] pointAB = decryptDual1(cipherMessage, secretKey);
-        return decryptMessage(nonce, pointAB, cipherText);
+        return decryptMessage(cipherText, nonce, pointAB);
     }
 
-    private static byte[] decryptMessage(byte[] nonce, byte[] pointAB, byte[] cipherText) {
+    private static byte[] decryptMessage( byte[] cipherText, byte[] nonce, byte[] point) {
         byte[] sharedKey = new byte[32];
         int i;
-        TweetNaclFast.crypto_core_hsalsa20(sharedKey, TweetNaclFast._0, pointAB, TweetNaclFast.sigma);
+        TweetNaclFast.crypto_core_hsalsa20(sharedKey, TweetNaclFast._0, point, TweetNaclFast.sigma);
         byte [] cipherBuffer = new byte[Box.boxzerobytesLength+cipherText.length];
         byte [] messageBuffer = new byte[cipherBuffer.length];
         for (i = 0; i < cipherText.length; i ++) cipherBuffer[i+Box.boxzerobytesLength] = cipherText[i];
@@ -399,7 +399,7 @@ public class DualSalt {
         return pointAB;
     }
 
-    public static byte[] decryptDual2(byte[] nonce, byte[] cipherMessage, byte[] d1, byte[] secretKey){
+    public static byte[] decryptDual2(byte[] d1, byte[] cipherMessage, byte[] nonce, byte[] secretKey){
         int i;
         byte[] tempPublicKey = new byte[32];
         byte[] point = new byte[32];
@@ -426,6 +426,6 @@ public class DualSalt {
         TweetNaclFast.add(p, q);
         TweetNaclFast.pack(point, p);
 
-        return decryptMessage(nonce, point, cipherText);
+        return decryptMessage(cipherText, nonce, point);
     }
 }

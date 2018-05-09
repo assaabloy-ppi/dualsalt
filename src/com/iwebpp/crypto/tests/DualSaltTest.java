@@ -191,7 +191,7 @@ public class DualSaltTest {
         }
         Log.d(TAG, "Cipher message:  " + TweetNaclFast.hexEncodeToString(cipherMessage));
 
-        byte[] decryptedMessage = DualSalt.decrypt(nonce, cipherMessage, secKey);
+        byte[] decryptedMessage = DualSalt.decrypt(cipherMessage, nonce, secKey);
 
         if (Arrays.equals(rand2, nonce) &&
             Arrays.equals(message, decryptedMessage)){
@@ -239,7 +239,7 @@ public class DualSaltTest {
         Log.d(TAG, "Cipher message: " + TweetNaclFast.hexEncodeToString(cipherMessage));
 
         byte[] d1 = DualSalt.decryptDual1(cipherMessage, secKeyA);
-        byte[] decryptedMessage = DualSalt.decryptDual2(nonce, cipherMessage, d1, secKeyB);
+        byte[] decryptedMessage = DualSalt.decryptDual2(d1, cipherMessage, nonce, secKeyB);
 
         if (Arrays.equals(rand3, nonce) &&
                 Arrays.equals(message, decryptedMessage)){
