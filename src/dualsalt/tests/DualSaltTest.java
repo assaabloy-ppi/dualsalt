@@ -16,8 +16,8 @@ public class DualSaltTest {
         byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
         byte[] secKeyA = new byte[DualSalt.secretKeyLength];
         byte[] secKeyB = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKey(pubKeyA, secKeyA, rand1);
-        DualSalt.createKey(pubKeyB, secKeyB, rand2);
+        DualSalt.createKeyPair(pubKeyA, secKeyA, rand1);
+        DualSalt.createKeyPair(pubKeyB, secKeyB, rand2);
 
         Log.d( TAG, "A public key: " + TweetNaclFast.hexEncodeToString(pubKeyA));
         Log.d( TAG, "B public key: " + TweetNaclFast.hexEncodeToString(pubKeyB));
@@ -30,7 +30,7 @@ public class DualSaltTest {
 
 
         byte[] secKeyAB = DualSalt.addScalars(secKeyA, secKeyB);
-        byte[] pubKeyAB2 = DualSalt.calculatePubKey(secKeyAB);
+        byte[] pubKeyAB2 = DualSalt.calculatePublicKey(secKeyAB);
         Log.d( TAG, "Group public key 2: " + TweetNaclFast.hexEncodeToString(pubKeyAB2));
         Log.d( TAG, "Group public key ok: " + Arrays.equals( pubKeyAB1, pubKeyAB2));
     }
@@ -42,8 +42,8 @@ public class DualSaltTest {
         byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
         byte[] secKeyA = new byte[DualSalt.secretKeyLength];
         byte[] secKeyB = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKey(pubKeyA, secKeyA, rand1);
-        DualSalt.createKey(pubKeyB, secKeyB, rand2);
+        DualSalt.createKeyPair(pubKeyA, secKeyA, rand1);
+        DualSalt.createKeyPair(pubKeyB, secKeyB, rand2);
 
         byte[] pubKeyAB1 = DualSalt.addPubKeys(pubKeyA, pubKeyB);
         if (pubKeyAB1 == null){
@@ -93,7 +93,7 @@ public class DualSaltTest {
 
         byte[] publicKey = new byte[DualSalt.publicKeyLength];
         byte[] secretKey = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKey(publicKey, secretKey, rand);
+        DualSalt.createKeyPair(publicKey, secretKey, rand);
         byte[] message = testString.getBytes();
 
         byte[] signature = new byte[DualSalt.signatureLength+message.length];
@@ -116,8 +116,8 @@ public class DualSaltTest {
         byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
         byte[] secKeyA = new byte[DualSalt.secretKeyLength];
         byte[] secKeyB = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKey(pubKeyA, secKeyA, rand1);
-        DualSalt.createKey(pubKeyB, secKeyB, rand2);
+        DualSalt.createKeyPair(pubKeyA, secKeyA, rand1);
+        DualSalt.createKeyPair(pubKeyB, secKeyB, rand2);
         byte[] pubKeyC = DualSalt.addPubKeys(pubKeyA, pubKeyB);
         byte[] pubKeyA2 = DualSalt.subtractPubKeys(pubKeyC, pubKeyB);
         byte[] pubKeyB2 = DualSalt.subtractPubKeys(pubKeyC, pubKeyA);
@@ -140,8 +140,8 @@ public class DualSaltTest {
         byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
         byte[] secKeyA = new byte[DualSalt.secretKeyLength];
         byte[] secKeyB = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKey(pubKeyA, secKeyA, rand1);
-        DualSalt.createKey(pubKeyB, secKeyB, rand2);
+        DualSalt.createKeyPair(pubKeyA, secKeyA, rand1);
+        DualSalt.createKeyPair(pubKeyB, secKeyB, rand2);
         byte[] message = testString.getBytes();
 
         byte[] virtualPublicKey = DualSalt.addPubKeys(pubKeyA, pubKeyB);
@@ -176,7 +176,7 @@ public class DualSaltTest {
         byte[] nonce = new byte[DualSalt.nonceLength];
         byte[] pubKey = new byte[DualSalt.publicKeyLength];
         byte[] secKey = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKey(pubKey, secKey, rand1);
+        DualSalt.createKeyPair(pubKey, secKey, rand1);
         byte[] message = testString.getBytes();
 
         byte[] cipherMessage = DualSalt.encrypt(message, rand2, pubKey, rand3);
@@ -220,8 +220,8 @@ public class DualSaltTest {
         byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
         byte[] secKeyA = new byte[DualSalt.secretKeyLength];
         byte[] secKeyB = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKey(pubKeyA, secKeyA, rand1);
-        DualSalt.createKey(pubKeyB, secKeyB, rand2);
+        DualSalt.createKeyPair(pubKeyA, secKeyA, rand1);
+        DualSalt.createKeyPair(pubKeyB, secKeyB, rand2);
         byte[] pubKeyAB = DualSalt.addPubKeys(pubKeyA, pubKeyB);
         byte[] message = testString.getBytes();
 
