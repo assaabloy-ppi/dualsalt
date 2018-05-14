@@ -1,7 +1,7 @@
 // Copyright (c) 2014 Tom Zhou<iwebpp@gmail.com>
 
 
-package com.iwebpp.crypto;
+package dualsalt;
 
 import java.io.UnsupportedEncodingException;
 import java.security.SecureRandom;

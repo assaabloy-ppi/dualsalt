@@ -1,7 +1,7 @@
-package com.iwebpp.crypto.tests;
+package dualsalt.tests;
 
-import com.iwebpp.crypto.DualSalt;
-import com.iwebpp.crypto.TweetNaclFast;
+import dualsalt.DualSalt;
+import dualsalt.TweetNaclFast;
 
 public class DualSaltRandomTest {
 

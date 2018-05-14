@@ -1,9 +1,8 @@
-package com.iwebpp.crypto.tests;
+package dualsalt.tests;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
 
-import com.iwebpp.crypto.TweetNaclFast;
+import dualsalt.TweetNaclFast;
 
 public final class TweetNaclFastTest {
 	private static final String TAG = "TweetNaclFastTest";

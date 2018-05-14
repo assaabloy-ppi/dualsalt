@@ -1,4 +1,4 @@
-package com.iwebpp.crypto.tests;
+package dualsalt.tests;
 
 public final class Log {
 
