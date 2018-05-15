@@ -10,7 +10,6 @@ public class DualSalt {
     // Readme hello world
     // Disclaimer
     // Thanks
-    // Exceptions instead of null
     // check in params in public functions
     // Test with test vector from EdDSA (Ed25519) python
     // copy addScalars to test
@@ -43,9 +42,9 @@ public class DualSalt {
      * @param random    Random data used to create the key pair
      */
     public static void createKeyPair(byte[] publicKey, byte[] secretKey, byte[] random) {
-        if (publicKey.length != publicKeyLength  ) throw new IllegalArgumentException("Public key has the wrong length");
-        if (secretKey.length != secretKeyLength  ) throw new IllegalArgumentException("Secret key has the wrong length");
-        if (random.length != seedLength  ) throw new IllegalArgumentException("Random source has the wrong length");
+        if (publicKey.length != publicKeyLength) throw new IllegalArgumentException("Public key has the wrong length");
+        if (secretKey.length != secretKeyLength) throw new IllegalArgumentException("Secret key has the wrong length");
+        if (random.length != seedLength) throw new IllegalArgumentException("Random source has the wrong length");
 
         TweetNaclFast.crypto_hash(secretKey, random, 0, seedLength);
         secretKey[0] &= 248;
@@ -62,7 +61,7 @@ public class DualSalt {
      * @return          Returns the public key
      */
     public static byte[] calculatePublicKey(byte[] secretKey) {
-        if (secretKey.length != secretKeyLength  ) throw new IllegalArgumentException("Secret key has the wrong length");
+        if (secretKey.length != secretKeyLength) throw new IllegalArgumentException("Secret key has the wrong length");
 
         byte[] publicKey = new byte[publicKeyLength];
         long[][] p = new long[4][];
@@ -95,10 +94,10 @@ public class DualSalt {
      * @param random2   Random used for signing shall be different every time
      */
     public static void rotateKey(byte[] publicKey, byte[] secretKey, byte[] random1, boolean first, byte[] random2) {
-        if (publicKey.length != publicKeyLength  ) throw new IllegalArgumentException("Public key has the wrong length");
-        if (secretKey.length != secretKeyLength  ) throw new IllegalArgumentException("Secret key has the wrong length");
-        if (random1.length != seedLength  ) throw new IllegalArgumentException("Random1 source has the wrong length");
-        if (random2.length != seedLength  ) throw new IllegalArgumentException("Random2 source has the wrong length");
+        if (publicKey.length != publicKeyLength) throw new IllegalArgumentException("Public key has the wrong length");
+        if (secretKey.length != secretKeyLength) throw new IllegalArgumentException("Secret key has the wrong length");
+        if (random1.length != seedLength) throw new IllegalArgumentException("Random1 source has the wrong length");
+        if (random2.length != seedLength) throw new IllegalArgumentException("Random2 source has the wrong length");
 
         byte[] newScalar;
         if (first) {
@@ -150,8 +149,8 @@ public class DualSalt {
         b[1] = new long[16];
         b[2] = new long[16];
         b[3] = new long[16];
-        if (unpack(a, pointA) != 0) return null;
-        if (unpack(b, pointB) != 0) return null;
+        if (unpack(a, pointA) != 0) throw new IllegalArgumentException("Public key A can not be unpacked");
+        if (unpack(b, pointB) != 0) throw new IllegalArgumentException("Public key B can not be unpacked");
 
         TweetNaclFast.add(a, b);
 
@@ -222,36 +221,6 @@ public class DualSalt {
         return TweetNaclFast.crypto_sign_open(tmp, 0, signature, 0, signature.length, publicKey)==0;
     }
 
-    /*
-    M1 = sing1(m, C, a){
-        ra = H(a(a(32:64))||m)
-        Ra = ra*P
-        return (Ra, C, m)
-    }
-
-    M2 = sign2(M1, b){
-        (Ra, C, M) = M1
-        rb = H(b(32:64)||m)
-        Rb = rb*P
-        R = Ra + Rb
-        h = H(R||C||m)
-        sb = rb + h*b(0:31)
-        return (Rb, sb)
-    }
-
-    (R, s) = sign3(M1, M2, a, A){
-        (Ra, C, M) = M1
-        (Rb, sb) = M2
-        R = Ra + Rb
-        h = H(R||C||m)
-        B = C - A
-        s*P == R+h*B
-        ra = H(a(32:64)||m)
-        sa = ra + h*a(0:31)
-        s = sa + sb
-        return (R, s)
-    }*/
-
     public static byte[] signCreateDual1(byte[] message, byte[]  virtualPublicKey, byte[] secretKeyA){
         byte[] m1 = new byte[m1HeaderLength+message.length];
         System.arraycopy(virtualPublicKey, 0, m1, 0, publicKeyLength);
@@ -277,9 +246,6 @@ public class DualSalt {
         byte[] pseudoRandomB = calculateRand(message, secretKeyB);
         byte[] randomPointB = calculatePublicKey(pseudoRandomB);
         byte[] randomPoint = addPubKeys(randomPointA, randomPointB);
-        if (randomPoint == null){
-            return null;
-        }
         System.arraycopy(randomPointB, 0, m2, 0, TweetNaclFast.ScalarMult.groupElementLength);
 
         byte[] hash = calculateHash(randomPoint, virtualPublicKey, message);
@@ -304,11 +270,10 @@ public class DualSalt {
         byte[] pseudoRandomA = calculateRand(message, secretKeyA);
         byte[] randomPointA = calculatePublicKey(pseudoRandomA);
         byte[] randomPoint = addPubKeys(randomPointA, randomPointB);
-        if (randomPoint == null) return null;
 
         byte[] hash = calculateHash(randomPoint, virtualPublicKey, message);
         byte[] publicKeyB = subtractPubKeys(virtualPublicKey, publicKeyA);
-        if (validateSignatureSpecial(publicKeyB, randomPointB, signatureB, hash)) return null;
+        if (validateSignatureSpecial(publicKeyB, randomPointB, signatureB, hash)) throw new IllegalArgumentException("M2 do not validate correctly");
 
         byte[] signatureA = calculateSignature( pseudoRandomA, hash, secretKeyA);
         byte[] signature = addScalars(signatureA, signatureB);
@@ -399,7 +364,7 @@ public class DualSalt {
         q[2] = new long[16];
         q[3] = new long[16];
 
-        if (unpack(q, toPublicKey)!=0) return null;
+        if (unpack(q, toPublicKey)!=0) throw new IllegalArgumentException("ToPublicKey can not be unpacked");
         TweetNaclFast.scalarmult(p, q, tempSecretKey, 0);
         TweetNaclFast.pack(pointAB, p);
         TweetNaclFast.crypto_core_hsalsa20(sharedKey, TweetNaclFast._0, pointAB, TweetNaclFast.sigma);
@@ -451,7 +416,7 @@ public class DualSalt {
         q[2] = new long[16];
         q[3] = new long[16];
 
-        if (unpack(q, tempPublicKey)!=0) return null;
+        if (unpack(q, tempPublicKey)!=0) throw new IllegalArgumentException("cipherMessage do not contain a valid public key");
         TweetNaclFast.scalarmult(p, q, secretKey, 0);
         TweetNaclFast.pack(point, p);
         return point;
@@ -476,10 +441,10 @@ public class DualSalt {
         q[2] = new long[16];
         q[3] = new long[16];
 
-        if (unpack(q, tempPublicKey)!=0) return null;
+        if (unpack(q, tempPublicKey)!=0) throw new IllegalArgumentException("cipherMessage do not contain a valid public key");
         TweetNaclFast.scalarmult(p, q, secretKey, 0);
 
-        if (unpack(q, d1)!=0) return null;
+        if (unpack(q, d1)!=0) throw new IllegalArgumentException("D1 do not contain a valid public key");
         TweetNaclFast.add(p, q);
         TweetNaclFast.pack(point, p);
 

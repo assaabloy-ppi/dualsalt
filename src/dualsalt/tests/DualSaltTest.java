@@ -9,7 +9,7 @@ public class DualSaltTest {
 
     private static final String TAG = "DualSaltTest";
 
-    private void testKeyAddition(byte[] rand1, byte[] rand2){
+    private void testKeyAddition(byte[] rand1, byte[] rand2) throws Exception {
         System.out.println("\nTest key addition");
 
         byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
@@ -19,20 +19,28 @@ public class DualSaltTest {
         DualSalt.createKeyPair(pubKeyA, secKeyA, rand1);
         DualSalt.createKeyPair(pubKeyB, secKeyB, rand2);
 
-        Log.d( TAG, "A public key: " + TweetNaclFast.hexEncodeToString(pubKeyA));
-        Log.d( TAG, "B public key: " + TweetNaclFast.hexEncodeToString(pubKeyB));
         byte[] pubKeyAB1 = DualSalt.addPubKeys(pubKeyA, pubKeyB);
         if (pubKeyAB1 == null){
+            Log.d(TAG, "Rand1: " + TweetNaclFast.hexEncodeToString(secKeyA));
+            Log.d(TAG, "Rand2: " + TweetNaclFast.hexEncodeToString(secKeyB));
             Log.d( TAG, "Fail, Could not add keys");
-            return;
+            throw new Exception();
         }
-        Log.d( TAG, "Group public key 1: " + TweetNaclFast.hexEncodeToString(pubKeyAB1));
 
+        byte[] secScalarAB = DualSalt.addScalars(secKeyA, secKeyB);
+        byte[] secSecAB = new byte[DualSalt.secretKeyLength];
+        System.arraycopy(secScalarAB, 0, secSecAB, 0, TweetNaclFast.ScalarMult.scalarLength);
+        byte[] pubKeyAB2 = DualSalt.calculatePublicKey(secSecAB);
 
-        byte[] secKeyAB = DualSalt.addScalars(secKeyA, secKeyB);
-        byte[] pubKeyAB2 = DualSalt.calculatePublicKey(secKeyAB);
-        Log.d( TAG, "Group public key 2: " + TweetNaclFast.hexEncodeToString(pubKeyAB2));
-        Log.d( TAG, "Group public key ok: " + Arrays.equals( pubKeyAB1, pubKeyAB2));
+        if (Arrays.equals(pubKeyAB1, pubKeyAB2)) {
+            Log.d( TAG, "Group public key ok");
+        } else {
+            Log.d(TAG, "Rand1: " + TweetNaclFast.hexEncodeToString(secKeyA));
+            Log.d(TAG, "Rand2: " + TweetNaclFast.hexEncodeToString(secKeyB));
+            Log.d( TAG, "Group public key 1: " + TweetNaclFast.hexEncodeToString(pubKeyAB1));
+            Log.d( TAG, "Group public key 2: " + TweetNaclFast.hexEncodeToString(pubKeyAB2));
+            throw new Exception();
+        }
     }
 
     static void testRotateKeys(byte[] rand1, byte[] rand2, byte[] rand3) throws Exception {
