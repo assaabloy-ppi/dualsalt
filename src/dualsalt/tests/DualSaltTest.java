@@ -9,7 +9,6 @@ public class DualSaltTest {
 
     private static final String TAG = "DualSaltTest";
 
-
     private static byte[] addScalars(byte[] scalarA, byte[] scalarB) {
         // Copy of addScalars() in DualSalt to be able to have that function private
         int i;
@@ -91,7 +90,6 @@ public class DualSaltTest {
             Log.d( TAG, "Fail, Some pub keys was the same");
             throw new Exception();
         }
-
 
         byte[] pubKeyAB2 = DualSalt.addPublicKeys(pubKeyA2, pubKeyB2);
         if (pubKeyAB2 == null){

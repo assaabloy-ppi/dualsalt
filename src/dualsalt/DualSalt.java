@@ -1,15 +1,43 @@
 package dualsalt;
 
+/**
+ * Crypto library that focus on doing dual signing and decryption (2 of 2) without the secret keys never being in
+ * the same device. It also has signatures that is compatible with TweetNaCl.
+ *
+ * Disclaimer
+ * We take no responsibility for the reliability or security of this library. Use at your own risk.
+ *
+ * Design decisions
+ * - The library dose not use x25519 as TweetNaCl uses. This is for two reasons for this.
+ *   Minimizing the amount of functions dependent on in TweetNaCl
+ *   Enabling the possibility to use the same long term key for both signing and decryption. (Common is to separate
+ *   this two for security reasons)
+ * - The secret key used in TweetNaCl is stored always stored with the public key. We do not do that anymore
+ *   The secret key is then hashed on usage to get a scalar part and a rand seed to the r creation in signing.
+ *   To enable rotateKey() the secret key is now stored after the hashing with makes it bigger. So a secret key
+ *   is still 64 bytes
+ * - We limited the lib to just handel 2 of 2 signing and decryption even if it easy could have benn made
+ *   for 3 of 3 etc. The reason for this is simplicity and that we came to the conclusion that 2 of 2 handles most
+ *   the use cases we could throw at it.
+ * - The code is not written to pure JAVA standards but has a more C-ish feel to it with static functions and byte
+ *   arrays tossed around. This is course the code sooner or later shall bee ported to other languages and the be
+ *   easy to compare between each other. Another reason is to stay more close to the original TweetNaCl code
+ *   by Daniel J. Bernstein, Tanja Lange, Peter Schwabe.
+ * - No real effort has been done to optimize the library for speed. At multiple locations the use of subroutines
+ *   makes so that parameters are packed and then unpacked (quite time consuming) but this has heighten the
+ *   readability of the code. The devices that we see using this library will not have any high recuirements.
+ *   Optimizations can always be done later on if the need occur.
+ *
+ * Thanks to
+ * - InstantWebP2P/tweetnacl-java that is the implementation of TweetNaCl that DualSalt uses as foundation.
+ */
 public class DualSalt {
 
     // TODO
     // Build with JAVA 7
     // check in params in public functions
     // Function description
-    // Class description (design decisions)
     // Readme hello world
-    // Disclaimer
-    // Thanks
     // Negative testcase
     // Test with test vector from EdDSA (Ed25519) python
 
@@ -191,7 +219,7 @@ public class DualSalt {
     /**
      * Unpack group element. Uses unpackneg() from TweetNaclFast and changes the sign
      * @param packedGroupEl The group element that is to be unpacked
-     * @return                   The resulting unpacked group element
+     * @return              The resulting unpacked group element
      */
     private static long[][] unpack(byte[] packedGroupEl) {
         long[][] unpackedGroupEl = createUnpackedGroupEl();
@@ -205,7 +233,6 @@ public class DualSalt {
 
         return unpackedGroupEl;
     }
-
 
     public static void signCreate(byte[] signature, byte[] message, byte[] publicKey, byte[] secretKey) {
         // Changed as little as possible from TweetSalts crypto_sign(). One of the changes is the deletion of
