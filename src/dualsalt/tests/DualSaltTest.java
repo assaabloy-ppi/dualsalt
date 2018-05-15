@@ -9,6 +9,21 @@ public class DualSaltTest {
 
     private static final String TAG = "DualSaltTest";
 
+
+    private static byte[] addScalars(byte[] scalarA, byte[] scalarB) {
+        // Copy of addScalars() in DualSalt to be able to have that function private
+        int i;
+        byte[] scalar = new byte[TweetNaclFast.ScalarMult.scalarLength];
+        long[] temp = new long[64];
+        for (i = 0; i < 64; i++) temp[i] = 0;
+        for (i = 0; i < 32; i++) temp[i] = (long) (scalarA[i] & 0xff);
+        for (i = 0; i < 32; i++) temp[i] += (long) (scalarB[i] & 0xff);
+
+        TweetNaclFast.modL(scalar, 0, temp);
+
+        return scalar;
+    }
+
     private void testKeyAddition(byte[] rand1, byte[] rand2) throws Exception {
         System.out.println("\nTest key addition");
 
@@ -19,7 +34,7 @@ public class DualSaltTest {
         DualSalt.createKeyPair(pubKeyA, secKeyA, rand1);
         DualSalt.createKeyPair(pubKeyB, secKeyB, rand2);
 
-        byte[] pubKeyAB1 = DualSalt.addPubKeys(pubKeyA, pubKeyB);
+        byte[] pubKeyAB1 = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
         if (pubKeyAB1 == null){
             Log.d(TAG, "Rand1: " + TweetNaclFast.hexEncodeToString(secKeyA));
             Log.d(TAG, "Rand2: " + TweetNaclFast.hexEncodeToString(secKeyB));
@@ -27,7 +42,7 @@ public class DualSaltTest {
             throw new Exception();
         }
 
-        byte[] secScalarAB = DualSalt.addScalars(secKeyA, secKeyB);
+        byte[] secScalarAB = addScalars(secKeyA, secKeyB);
         byte[] secSecAB = new byte[DualSalt.secretKeyLength];
         System.arraycopy(secScalarAB, 0, secSecAB, 0, TweetNaclFast.ScalarMult.scalarLength);
         byte[] pubKeyAB2 = DualSalt.calculatePublicKey(secSecAB);
@@ -53,7 +68,7 @@ public class DualSaltTest {
         DualSalt.createKeyPair(pubKeyA, secKeyA, rand1);
         DualSalt.createKeyPair(pubKeyB, secKeyB, rand2);
 
-        byte[] pubKeyAB1 = DualSalt.addPubKeys(pubKeyA, pubKeyB);
+        byte[] pubKeyAB1 = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
         if (pubKeyAB1 == null){
             Log.d( TAG, "Fail, Could not add keys");
             throw new Exception();
@@ -78,7 +93,7 @@ public class DualSaltTest {
         }
 
 
-        byte[] pubKeyAB2 = DualSalt.addPubKeys(pubKeyA2, pubKeyB2);
+        byte[] pubKeyAB2 = DualSalt.addPublicKeys(pubKeyA2, pubKeyB2);
         if (pubKeyAB2 == null){
             Log.d( TAG, "Fail, Could not add keys");
             throw new Exception();
@@ -126,9 +141,9 @@ public class DualSaltTest {
         byte[] secKeyB = new byte[DualSalt.secretKeyLength];
         DualSalt.createKeyPair(pubKeyA, secKeyA, rand1);
         DualSalt.createKeyPair(pubKeyB, secKeyB, rand2);
-        byte[] pubKeyC = DualSalt.addPubKeys(pubKeyA, pubKeyB);
-        byte[] pubKeyA2 = DualSalt.subtractPubKeys(pubKeyC, pubKeyB);
-        byte[] pubKeyB2 = DualSalt.subtractPubKeys(pubKeyC, pubKeyA);
+        byte[] pubKeyC = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
+        byte[] pubKeyA2 = DualSalt.subtractPublicKeys(pubKeyC, pubKeyB);
+        byte[] pubKeyB2 = DualSalt.subtractPublicKeys(pubKeyC, pubKeyA);
         if (Arrays.equals(pubKeyA, pubKeyA2) &&
             Arrays.equals(pubKeyB, pubKeyB2)){
             Log.d(TAG, "Success! The add and subtract did produce the same public key");
@@ -152,7 +167,7 @@ public class DualSaltTest {
         DualSalt.createKeyPair(pubKeyB, secKeyB, rand2);
         byte[] message = testString.getBytes();
 
-        byte[] virtualPublicKey = DualSalt.addPubKeys(pubKeyA, pubKeyB);
+        byte[] virtualPublicKey = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
 
         byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, secKeyA);
         byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB);
@@ -230,7 +245,7 @@ public class DualSaltTest {
         byte[] secKeyB = new byte[DualSalt.secretKeyLength];
         DualSalt.createKeyPair(pubKeyA, secKeyA, rand1);
         DualSalt.createKeyPair(pubKeyB, secKeyB, rand2);
-        byte[] pubKeyAB = DualSalt.addPubKeys(pubKeyA, pubKeyB);
+        byte[] pubKeyAB = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
         byte[] message = testString.getBytes();
 
         byte[] cipherMessage = DualSalt.encrypt(message, rand3, pubKeyAB, rand4);
