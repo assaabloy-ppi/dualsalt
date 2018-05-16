@@ -108,12 +108,13 @@ public class DualSalt {
      * key pairs kan be changed in such a way that the addition of there two public keys still adds up to the same value.
      * Run rotateKey() on the first key pair with the parameter first sat to true and then run rotateKey() on the second
      * key pair with the param first set to false. Reuse the same data for random1 both time.
+     * random1 is recommended to be sent between devices in a encrypted channel with forward secrecy such as saltChannel
      * ************************************************
      * createKeyPair(A, a, r1)
      * createKeyPair(B, b, r2)
      * C1 = addPublicKeys(A, B)
-     * rotateKey(A, a, r2, true, r4) <- Change A and a
-     * rotateKey(B, b, r2, false, r5) <- Change B and b
+     * rotateKey(A, a, r3, true, r4) <- Change A and a
+     * rotateKey(B, b, r3, false, r5) <- Change B and b
      * C1 == addPublicKeys(A, B)
      * ***********************************************
      * @param publicKey (out) The new public key after rotation
@@ -388,7 +389,7 @@ public class DualSalt {
 
         byte[] hash = calculateHash(randomGroupEl, virtualPublicKey, message);
         byte[] publicKeyB = subtractPublicKeys(virtualPublicKey, publicKeyA);
-        if (validateSignatureSpecial(publicKeyB, randomGroupElB, signatureB, hash))
+        if (!validateSignatureSpecial(publicKeyB, randomGroupElB, signatureB, hash))
             throw new IllegalArgumentException("M2 do not validate correctly");
 
         byte[] signatureA = calculateSignature(pseudoRandomA, hash, secretKeyA);
@@ -400,6 +401,12 @@ public class DualSalt {
         return sign;
     }
 
+    /**
+     * Function used to create the pseudo random used used in a EdDSA signature
+     * @param message   The signature message used as seed to the random
+     * @param secretKey The secret key used as seed to the random
+     * @return          The pseudo random
+     */
     private static byte[] calculateRand(byte[] message, byte[] secretKey) {
         byte[] rand = new byte[64]; // 64 instead of 32. Reduction in the end
         byte[] tempBuffer = new byte[secretRandomLength + message.length];
@@ -412,12 +419,19 @@ public class DualSalt {
         return rand;
     }
 
+    /**
+     * Used to calculate the hash used in both verify and create EdDSA signatures
+     * @param randomGroupEl The pseudo random point used in the signature
+     * @param publicKey     The public key of the signature
+     * @param message       The message of the signature
+     * @return              The hash value.
+     */
     private static byte[] calculateHash(byte[] randomGroupEl, byte[] publicKey, byte[] message) {
         byte[] hash = new byte[64]; // 64 instead of 32. Reduction in the end
         byte[] tempBuffer = new byte[TweetNaclFast.ScalarMult.groupElementLength + publicKeyLength + message.length];
 
         System.arraycopy(randomGroupEl, 0, tempBuffer, 0, TweetNaclFast.ScalarMult.groupElementLength);
-        System.arraycopy(publicKey, 0, tempBuffer, 32, publicKeyLength);
+        System.arraycopy(publicKey, 0, tempBuffer, TweetNaclFast.ScalarMult.groupElementLength, publicKeyLength);
         System.arraycopy(message, 0, tempBuffer, TweetNaclFast.ScalarMult.groupElementLength + publicKeyLength, message.length);
         TweetNaclFast.crypto_hash(hash, tempBuffer, 0, tempBuffer.length);
 
@@ -425,6 +439,13 @@ public class DualSalt {
         return hash;
     }
 
+    /**
+     * The calculation of the scalars in a EdDSA signature
+     * @param rand      The pseudo random
+     * @param hash      The hash value
+     * @param secretKey The secret key
+     * @return          The scalar to be included in the signature
+     */
     private static byte[] calculateSignature(byte[] rand, byte[] hash, byte[] secretKey) {
         byte[] signature = new byte[TweetNaclFast.ScalarMult.scalarLength];
 
@@ -437,6 +458,16 @@ public class DualSalt {
         return signature;
     }
 
+    /**
+     * In signCreateDual3() the function validates m2. M2 is quite close to a signature with the difference how the hash
+     * is calculated. So this function do the exact same as a usual EdDSA verify dose with the exception that the hash
+     * comes from a parameter.
+     * @param publicKey     The public key the signature sghall be validated agains
+     * @param randomGroupEl The first part of the signature
+     * @param signature     The second part of the signature
+     * @param hash          The hash used in the validation
+     * @return              True if valid
+     */
     private static boolean validateSignatureSpecial(byte[] publicKey, byte[] randomGroupEl, byte[] signature, byte[] hash) {
         long[][] p = createUnpackedGroupEl();
         long[][] q = createUnpackedGroupEl();
@@ -447,7 +478,7 @@ public class DualSalt {
         TweetNaclFast.scalarbase(q, signature, 0);
         TweetNaclFast.add(p, q);
         TweetNaclFast.pack(t, p);
-        return TweetNaclFast.crypto_verify_32(randomGroupEl, 0, t, 0) != 0;
+        return TweetNaclFast.crypto_verify_32(randomGroupEl, 0, t, 0) == 0;
     }
 
     public static byte[] encrypt(byte[] message, byte[] nonce, byte[] toPublicKey, byte[] random) {
