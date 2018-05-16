@@ -40,6 +40,7 @@ public class DualSalt {
     // Readme hello world
     // Negative testcase
     // Test with test vector from EdDSA (Ed25519) python
+    // Speed test? Compared to tweetNaCl
 
     private static final int secretRandomLength = 32;
 
@@ -47,11 +48,11 @@ public class DualSalt {
 
     public static final int publicKeyLength = TweetNaclFast.ScalarMult.groupElementLength;
 
-    public static final int signatureLength = TweetNaclFast.Signature.signatureLength;
-
     public static final int nonceLength = TweetNaclFast.Box.nonceLength;
 
     public static final int seedLength = TweetNaclFast.Signature.seedLength;
+
+    private static final int signatureLength = TweetNaclFast.Signature.signatureLength;
 
     private static final int cipherMessageHeaderLength = nonceLength + publicKeyLength;
 
@@ -197,6 +198,7 @@ public class DualSalt {
      * @return           The result as a public key
      */
     public static byte[] subtractPublicKeys(byte[] publicKeyA, byte[] publicKeyB) {
+        if (publicKeyB.length != publicKeyLength) throw new IllegalArgumentException("One public key has the wrong length");
         byte[] temp = new byte[publicKeyLength];
         System.arraycopy(publicKeyB, 0, temp, 0, publicKeyLength);
         temp[31] = (byte) (temp[31] ^ 0x80);
@@ -234,38 +236,29 @@ public class DualSalt {
         return unpackedGroupEl;
     }
 
-    public static void signCreate(byte[] signature, byte[] message, byte[] publicKey, byte[] secretKey) {
-        // Changed as little as possible from TweetSalts crypto_sign(). One of the changes is the deletion of
-        // the hashing of the secret key.
-        byte[]  h = new byte[64], r = new byte[64];
-        int n = message.length;
-        int i, j;
-        long [] x = new long[64];
+    /**
+     * Create a EdDSA signature.
+     * @param message   The message to be signed.
+     * @param publicKey The public key of the signer
+     * @param secretKey The secret key of the signer
+     * @return          The signature
+     */
+    public static byte[] signCreate(byte[] message, byte[] publicKey, byte[] secretKey) {
+        if (publicKey.length != publicKeyLength) throw new IllegalArgumentException("Public key has the wrong length");
+        if (secretKey.length != secretKeyLength) throw new IllegalArgumentException("Secret key has the wrong length");
+        byte[] sign = new byte[m2Length + message.length];
 
-        long [] [] p = new long [4] [];
-        p[0] = new long [16];
-        p[1] = new long [16];
-        p[2] = new long [16];
-        p[3] = new long [16];
+        byte[] pseudoRandom = calculateRand(message, secretKey);
+        byte[] randomGroupEl = calculatePublicKey(pseudoRandom);
 
-        for (i = 0; i < n; i ++) signature[64 + i] = message[i];
+        byte[] hash = calculateHash(randomGroupEl, publicKey, message);
+        byte[] signature = calculateSignature(pseudoRandom, hash, secretKey);
 
-        for (i = 0; i < 32; i ++) signature[32 + i] = secretKey[32 + i];
+        System.arraycopy(randomGroupEl, 0, sign, 0, TweetNaclFast.ScalarMult.groupElementLength);
+        System.arraycopy(signature, 0, sign, TweetNaclFast.ScalarMult.groupElementLength, TweetNaclFast.ScalarMult.scalarLength);
+        System.arraycopy(message, 0, sign, signatureLength, message.length);
 
-        TweetNaclFast.crypto_hash(r, signature,32, n+32);
-        TweetNaclFast.reduce(r);
-        TweetNaclFast.scalarbase(p, r,0);
-        TweetNaclFast.pack(signature,p);
-
-        for (i = 0; i < 32; i ++) signature[i+32] = publicKey[i];
-        TweetNaclFast.crypto_hash(h, signature,0, n + 64);
-        TweetNaclFast.reduce(h);
-
-        for (i = 0; i < 64; i ++) x[i] = 0;
-        for (i = 0; i < 32; i ++) x[i] = (long) (r[i]&0xff);
-        for (i = 0; i < 32; i ++) for (j = 0; j < 32; j ++) x[i+j] += (h[i]&0xff) * (long) (secretKey[j]&0xff);
-
-        TweetNaclFast.modL(signature,32, x);
+        return sign;
     }
 
     public static boolean  signVerify(byte [] signature, byte [] publicKey){
@@ -275,13 +268,13 @@ public class DualSalt {
 
     public static byte[] signCreateDual1(byte[] message, byte[]  virtualPublicKey, byte[] secretKeyA){
         byte[] m1 = new byte[m1HeaderLength+message.length];
-        System.arraycopy(virtualPublicKey, 0, m1, 0, publicKeyLength);
 
         byte[] pseudoRandomA = calculateRand(message, secretKeyA);
         byte[] randomGroupElA = calculatePublicKey(pseudoRandomA);
-        System.arraycopy(randomGroupElA, 0, m1, 32, publicKeyLength);
 
-        System.arraycopy(message, 0, m1, 64, message.length);
+        System.arraycopy(virtualPublicKey, 0, m1, 0, publicKeyLength);
+        System.arraycopy(randomGroupElA, 0, m1, publicKeyLength, TweetNaclFast.ScalarMult.groupElementLength);
+        System.arraycopy(message, 0, m1, m1HeaderLength, message.length);
         return m1;
     }
 
@@ -292,18 +285,18 @@ public class DualSalt {
         byte[] message = new byte[m1.length - m1HeaderLength];
 
         System.arraycopy(m1, 0, virtualPublicKey, 0, publicKeyLength);
-        System.arraycopy(m1, 32, randomGroupElA, 0, TweetNaclFast.ScalarMult.groupElementLength);
-        System.arraycopy(m1, 64, message, 0, message.length);
+        System.arraycopy(m1, publicKeyLength, randomGroupElA, 0, TweetNaclFast.ScalarMult.groupElementLength);
+        System.arraycopy(m1, m1HeaderLength, message, 0, message.length);
 
         byte[] pseudoRandomB = calculateRand(message, secretKeyB);
         byte[] randomGroupElB = calculatePublicKey(pseudoRandomB);
         byte[] randomGroupEl = addPublicKeys(randomGroupElA, randomGroupElB);
-        System.arraycopy(randomGroupElB, 0, m2, 0, TweetNaclFast.ScalarMult.groupElementLength);
 
         byte[] hash = calculateHash(randomGroupEl, virtualPublicKey, message);
         byte[] signatureB = calculateSignature( pseudoRandomB, hash, secretKeyB);
 
-        System.arraycopy(signatureB, 0, m2, 32, TweetNaclFast.ScalarMult.scalarLength);
+        System.arraycopy(randomGroupElB, 0, m2, 0, TweetNaclFast.ScalarMult.groupElementLength);
+        System.arraycopy(signatureB, 0, m2, TweetNaclFast.ScalarMult.groupElementLength, TweetNaclFast.ScalarMult.scalarLength);
         return m2;
     }
 
@@ -312,6 +305,7 @@ public class DualSalt {
         byte[] message = new byte[m1.length - m1HeaderLength];
         byte[] randomGroupElB = new byte[TweetNaclFast.ScalarMult.groupElementLength];
         byte[] signatureB = new byte[TweetNaclFast.ScalarMult.scalarLength];
+        byte[] sign = new byte[signatureLength + message.length];
 
         System.arraycopy(m1, 0, virtualPublicKey, 0, publicKeyLength);
         System.arraycopy(m1, m1HeaderLength, message, 0, message.length);
@@ -330,7 +324,6 @@ public class DualSalt {
         byte[] signatureA = calculateSignature( pseudoRandomA, hash, secretKeyA);
         byte[] signature = addScalars(signatureA, signatureB);
 
-        byte[] sign = new byte[signatureLength + message.length];
         System.arraycopy(randomGroupEl, 0, sign, 0, TweetNaclFast.ScalarMult.groupElementLength);
         System.arraycopy(signature, 0, sign, TweetNaclFast.ScalarMult.groupElementLength, TweetNaclFast.ScalarMult.scalarLength);
         System.arraycopy(message, 0, sign, signatureLength, message.length);
@@ -338,7 +331,6 @@ public class DualSalt {
     }
 
     private static byte[] calculateRand(byte [] message, byte [] secretKey){
-
         byte[] rand = new byte[64]; // 64 instead of 32. Reduction in the end
         byte[] tempBuffer = new byte[secretRandomLength + message.length];
 

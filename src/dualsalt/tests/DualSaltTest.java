@@ -117,8 +117,7 @@ public class DualSaltTest {
         DualSalt.createKeyPair(publicKey, secretKey, rand);
         byte[] message = testString.getBytes();
 
-        byte[] signature = new byte[DualSalt.signatureLength+message.length];
-        DualSalt.signCreate(signature, message, publicKey, secretKey);
+        byte[] signature = DualSalt.signCreate(message, publicKey, secretKey);
 
         boolean result = DualSalt.signVerify(signature, publicKey);
         if (result){
