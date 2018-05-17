@@ -37,12 +37,6 @@ public class DualSaltTest {
         DualSalt.createKeyPair(pubKeyB, secKeyB, rand2);
 
         byte[] pubKeyAB1 = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
-        if (pubKeyAB1 == null){
-            Log.d(TAG, "Rand1: " + TweetNaclFast.hexEncodeToString(secKeyA));
-            Log.d(TAG, "Rand2: " + TweetNaclFast.hexEncodeToString(secKeyB));
-            Log.d( TAG, "Fail, Could not add keys");
-            throw new Exception();
-        }
 
         byte[] secScalarAB = addScalars(secKeyA, secKeyB);
         byte[] secSecAB = new byte[DualSalt.secretKeyLength];
@@ -73,10 +67,6 @@ public class DualSaltTest {
         byte[] oldSecRandB = Arrays.copyOfRange(secKeyB, 32, DualSalt.secretKeyLength);
 
         byte[] pubKeyAB1 = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
-        if (pubKeyAB1 == null){
-            Log.d( TAG, "Fail, Could not add keys");
-            throw new Exception();
-        }
 
         byte[] pubKeyA2 = new byte[DualSalt.publicKeyLength];
         byte[] pubKeyB2 = new byte[DualSalt.publicKeyLength];
@@ -109,10 +99,6 @@ public class DualSaltTest {
         }
 
         byte[] pubKeyAB2 = DualSalt.addPublicKeys(pubKeyA2, pubKeyB2);
-        if (pubKeyAB2 == null){
-            Log.d( TAG, "Fail, Could not add keys");
-            throw new Exception();
-        }
 
         if (Arrays.equals(pubKeyAB1, pubKeyAB2)){
             Log.d(TAG, "Success! The rotated virtual key has the same pub key");
@@ -224,14 +210,6 @@ public class DualSaltTest {
         byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, secKeyA);
         byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB);
         byte[] signature = DualSalt.signCreateDual3(m1, m2, pubKeyA, secKeyA);
-
-        if (signature == null) {
-            Log.d(TAG, "Rand 1: " + TweetNaclFast.hexEncodeToString(rand1));
-            Log.d(TAG, "Rand 2: " + TweetNaclFast.hexEncodeToString(rand2));
-            Log.d(TAG, "Test string: \"" + testString + "\"");
-            Log.d(TAG, "Verified signature is null");
-            throw new Exception();
-        }
 
         if (DualSalt.signVerify(signature, virtualPublicKey)){
             Log.d(TAG, "Verified signature succeeded");
