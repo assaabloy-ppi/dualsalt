@@ -3,7 +3,10 @@ package dualsalt.tests;
 import dualsalt.DualSalt;
 import dualsalt.TweetNaclFast;
 
+import java.io.File;
+import java.net.URL;
 import java.util.Arrays;
+import java.util.Scanner;
 
 public class DualSaltTest {
 
@@ -282,6 +285,43 @@ public class DualSaltTest {
         }
     }
 
+    private static void testEddsaTestVector() throws Exception {
+        System.out.println("\nTest EdDSA test vector");
+
+        String fileName = "sign.input";
+        URL url = DualSaltTest.class.getResource(fileName);
+        File file = new File(url.getPath());
+
+        Scanner sc = new Scanner(file);
+        while (sc.hasNextLine()) {
+            String line = sc.nextLine();
+            String[] items = line.split(":");
+            byte[] dutSecretKey = TweetNaclFast.hexDecode(items[0]);
+            byte[] dutPublicKey = TweetNaclFast.hexDecode(items[1]);
+            byte[] dutMessage = TweetNaclFast.hexDecode(items[2]);
+            byte[] dutSignature = TweetNaclFast.hexDecode(items[3]);
+
+            byte[] secretKeySeed = new byte[DualSalt.seedLength];
+            System.arraycopy(dutSecretKey, 0, secretKeySeed, 0, DualSalt.seedLength);
+            byte[] secretKey = new byte[DualSalt.secretKeyLength];
+            byte[] publicKey = new byte[DualSalt.publicKeyLength];
+            DualSalt.createKeyPair(publicKey, secretKey, secretKeySeed);
+            if (!Arrays.equals(dutPublicKey, publicKey)){
+                throw new Exception("Public key do not match");
+            }
+
+            byte[] signature = DualSalt.signCreate(dutMessage, publicKey, secretKey);
+            if (!DualSalt.signVerify(signature, publicKey)){
+                throw new Exception("Signature do not verify correctly");
+            }
+            if (!Arrays.equals(dutSignature, signature)){
+                throw new Exception("Signature do not match");
+            }
+        }
+        sc.close();
+        Log.d(TAG, "Test succeeded");
+    }
+
     private void start() {
         (new Thread(() -> {
             Log.d(TAG, "start test");
@@ -320,13 +360,14 @@ public class DualSaltTest {
                 testDualDecrypt(rand3, rand1, nonce, rand2, "The best decryption in the all the worlds, You know like all all");
                 testDualDecrypt(rand2, rand3, nonce, rand1, "There could be only one ultimate decryption and this is it. Stop arguing");
 
+                testEddsaTestVector();
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
 
         })).start();
-
     }
 
     public static void main(String[] args) {

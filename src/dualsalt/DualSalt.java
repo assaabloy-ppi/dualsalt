@@ -40,7 +40,6 @@ public class DualSalt {
     // Build with JAVA 7
     // Readme hello world
     // Negative testcase
-    // Test with test vector from EdDSA (Ed25519) python
     // Speed test? Compared to tweetNaCl
 
     private static final int secretRandomLength = 32;
@@ -66,7 +65,6 @@ public class DualSalt {
     /**
      * Create key pair. The secret key is not compatible with Tweetnacl but the public key is compatible with tweetnacl
      * signing.
-     *
      * @param publicKey (out) The created key pairs public key
      * @param secretKey (out) The created key pairs secret key
      * @param random    Random data used to create the key pair
@@ -87,7 +85,6 @@ public class DualSalt {
 
     /**
      * Calculate the public key from a secret key. Can be used to make any scalar to a group element representation
-     *
      * @param secretKey The secret key to calculate the public key from
      * @return Returns the public key
      */
@@ -141,7 +138,6 @@ public class DualSalt {
 
     /**
      * Add two scalar to each others
-     *
      * @param scalarA The first scalar
      * @param scalarB The second scalar
      * @return The result as a scalar
@@ -161,7 +157,6 @@ public class DualSalt {
 
     /**
      * Subtract one scalar from another
-     *
      * @param scalarA A scalar
      * @param scalarB The scalar that is subtracted from the other
      * @return The result as a scalar
@@ -181,7 +176,6 @@ public class DualSalt {
 
     /**
      * Add two public keys to each others. A public key is a group element and this function is also used to add group element
-     *
      * @param publicKeyA The first public key
      * @param publicKeyB The second public key
      * @return The result as a public key
@@ -200,7 +194,6 @@ public class DualSalt {
 
     /**
      * Subtract one public key from another. A public key is a group element and this function is also used to subtract group element
-     *
      * @param publicKeyA A public key
      * @param publicKeyB The public key that is subtracted from the other
      * @return The result as a public key
@@ -216,7 +209,6 @@ public class DualSalt {
 
     /**
      * Creates an empty unpacked group element. Just for convenience
-     *
      * @return Empty unpacked group element
      */
     private static long[][] createUnpackedGroupEl() {
@@ -230,7 +222,6 @@ public class DualSalt {
 
     /**
      * Unpack group element. Uses unpackneg() from TweetNaclFast and changes the sign
-     *
      * @param packedGroupEl The group element that is to be unpacked
      * @return The resulting unpacked group element
      */
@@ -282,7 +273,7 @@ public class DualSalt {
      */
     public static boolean signVerify(byte[] signature, byte[] publicKey) {
         if (signature == null) throw new IllegalArgumentException("Signature is null");
-        if (signature.length <= signatureLength) throw new IllegalArgumentException("Signature is to short");
+        if (signature.length < signatureLength) throw new IllegalArgumentException("Signature is to short");
         if (publicKey.length != publicKeyLength) throw new IllegalArgumentException("Public key has the wrong length");
 
         byte[] tmp = new byte[signature.length];
