@@ -1,35 +1,23 @@
 # dualsalt
-Extension to NaCl crypto library to handling dual-signing (two-part singning) and dual-decryption (two-part decryption).
+Extension to NaCl crypto library to handling dual-signing (two-part signing) and dual-decryption (two-part decryption).
 
-Disclaimer
-
+## Disclaimer
 We take no responsibility for the reliability or security of this library. Use at your own risk.
 
-Design decisions
-- The library dose not use x25519 as TweetNaCl uses. This is for two reasons for this.
-Minimizing the amount of functions dependent on in TweetNaCl
-Enabling the possibility to use the same long term key for both signing and decryption. (Common is to separate
-this two for security reasons)
-- The secret key used in TweetNaCl is stored always stored with the public key. We do not do that anymore
-The secret key is then hashed on usage to get a scalar part and a rand seed to the r creation in signing.
-To enable rotateKey() the secret key is now stored after the hashing with makes it bigger. So a secret key
-is still 64 bytes
-- We limited the lib to just handel 2 of 2 signing and decryption even if it easy could have benn made
-for 3 of 3 etc. The reason for this is simplicity and that we came to the conclusion that 2 of 2 handles most
-the use cases we could throw at it.
-- The code is not written to pure JAVA standards but has a more C-ish feel to it with static functions and byte
-arrays tossed around. This is course the code sooner or later shall bee ported to other languages and the be
-easy to compare between each other. Another reason is to stay more close to the original TweetNaCl code
-by Daniel J. Bernstein, Tanja Lange, Peter Schwabe.
-- No real effort has been done to optimize the library for speed. At multiple locations the use of subroutines
-makes so that parameters are packed and then unpacked (quite time consuming) but this has heighten the
-readability of the code. The devices that we see using this library will not have any high recuirements.
-Optimizations can always be done later on if the need occur.
+## Design decisions
+- The library does not use x25519 for encryption as TweetNaCl uses. Instead it uses Ed25519 for both signing and encryption. There are two reasons for this.
+  - Minimizing the amount of function dependencies to TweetNaCl
+  - Enabling the possibility to use the same long term key for both signing and decryption. (Common is to separate
+these two for security reasons)
+- The secret key used in TweetNaCl is always stored with the public key. This library does not do that. The secret key in TweetNaCl is hashed on usage to get a scalar and a rand seed to the r creation in signing. To enable rotateKey() in dualsalt the secret key is stored after the hashing which makes it longer resulting in a secret key that is still 64 bytes
+- Dualsalt is limited to just handle 2 of 2 signing and decryption even if it easy could have been made for 3 of 3 etc. The reason for this is simplicity and the conclusion that 2 of 2 handles most of the use cases we could throw at it.
+- The code is not written to pure JAVA standards and has a more C-ish feel to it with static functions and byte arrays that are tossed around. This is because the code sooner or later shall be ported to other languages and then the code comparing will be easier. Another reason is to stay closer to the original TweetNaCl code by Daniel J. Bernstein, Tanja Lange, Peter Schwabe.
+- No real effort has been done to optimize the library for speed. At multiple locations the use of subroutines do so that parameters are packed and then unpacked (quite time consuming) but this has heighten the readability of the code. Optimizations can always be done later on if the need occurs.
 
-Thanks to
+## Thanks to
 - InstantWebP2P/tweetnacl-java that is the implementation of TweetNaCl that DualSalt uses as foundation.
 
-Example
+## Example
 
     byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
     byte[] secKeyA = new byte[DualSalt.secretKeyLength];
