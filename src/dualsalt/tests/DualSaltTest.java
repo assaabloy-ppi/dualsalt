@@ -69,8 +69,8 @@ public class DualSaltTest {
         byte[] secKeyB = new byte[DualSalt.secretKeyLength];
         DualSalt.createKeyPair(pubKeyA, secKeyA, rand1);
         DualSalt.createKeyPair(pubKeyB, secKeyB, rand2);
-        byte[] oldSecRandA = Arrays.copyOfRange(secKeyA, 32, 64);
-        byte[] oldSecRandB = Arrays.copyOfRange(secKeyB, 32, 64);
+        byte[] oldSecRandA = Arrays.copyOfRange(secKeyA, 32, DualSalt.secretKeyLength);
+        byte[] oldSecRandB = Arrays.copyOfRange(secKeyB, 32, DualSalt.secretKeyLength);
 
         byte[] pubKeyAB1 = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
         if (pubKeyAB1 == null){
@@ -96,8 +96,8 @@ public class DualSaltTest {
             throw new Exception();
         }
 
-        byte[] newSecRandA = Arrays.copyOfRange(secKeyA, 32, 64);
-        byte[] newSecRandB = Arrays.copyOfRange(secKeyB, 32, 64);
+        byte[] newSecRandA = Arrays.copyOfRange(secKeyA, 32, DualSalt.secretKeyLength);
+        byte[] newSecRandB = Arrays.copyOfRange(secKeyB, 32, DualSalt.secretKeyLength);
         if ( Arrays.equals(oldSecRandA, newSecRandA) ||
                 Arrays.equals(oldSecRandB, newSecRandB) ||
                 Arrays.equals(newSecRandA, newSecRandB)) {
@@ -136,8 +136,7 @@ public class DualSaltTest {
 
         byte[] signature = DualSalt.signCreate(message, publicKey, secretKey);
 
-        boolean result = DualSalt.signVerify(signature, publicKey);
-        if (result){
+        if (DualSalt.signVerify(signature, publicKey)){
             Log.d(TAG, "Verified signature succeeded");
         } else {
             Log.d(TAG, "Rand: " + TweetNaclFast.hexEncodeToString(rand));
@@ -146,6 +145,45 @@ public class DualSaltTest {
             throw new Exception();
         }
     }
+
+    private void testNegativeSingleSign(byte[] rand, String testString ) throws Exception {
+        System.out.println("\nTest negative single sign");
+
+        byte[] publicKey = new byte[DualSalt.publicKeyLength];
+        byte[] secretKey = new byte[DualSalt.secretKeyLength];
+        DualSalt.createKeyPair(publicKey, secretKey, rand);
+        byte[] message = testString.getBytes();
+
+        byte[] signature = DualSalt.signCreate(message, publicKey, secretKey);
+
+        int steps = 10;
+        for (int i = 0; i <= steps; i++) {
+            int j = ((signature.length-1)*i)/steps;
+            byte[]  tempSignature = signature.clone();
+            tempSignature[j] = (byte) (tempSignature[j] ^ 0x1);
+            if (DualSalt.signVerify(tempSignature, publicKey)) {
+                Log.d(TAG, "Rand: " + TweetNaclFast.hexEncodeToString(rand));
+                Log.d(TAG, "Test string: \"" + testString + "\"");
+                Log.d(TAG, "Validated succeeded but it should not");
+                throw new Exception();
+            }
+        }
+
+        for (int i = 0; i <= steps; i++) {
+            int j = ((publicKey.length-1)*i)/steps;
+            byte[]  tempPublicKey = publicKey.clone();
+            tempPublicKey[j] = (byte) (tempPublicKey[j] ^ 0x1);
+            if (DualSalt.signVerify(signature, tempPublicKey)) {
+                Log.d(TAG, "Rand: " + TweetNaclFast.hexEncodeToString(rand));
+                Log.d(TAG, "Test string: \"" + testString + "\"");
+                Log.d(TAG, "Validated succeeded but it should not");
+                throw new Exception();
+            }
+        }
+
+        Log.d(TAG, "Signature validation fail when it shall");
+    }
+
 
     private void testSubtractPubKey(byte[] rand1, byte[] rand2) throws Exception {
         System.out.println("\nTest subtract pub key");
@@ -171,7 +209,7 @@ public class DualSaltTest {
     }
 
     static void testDualSign(byte[] rand1, byte[] rand2, String testString) throws Exception {
-        System.out.println("\nTest single sign");
+        System.out.println("\nTest dual sign");
 
         byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
         byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
@@ -195,8 +233,7 @@ public class DualSaltTest {
             throw new Exception();
         }
 
-        boolean result = DualSalt.signVerify(signature, virtualPublicKey);
-        if (result){
+        if (DualSalt.signVerify(signature, virtualPublicKey)){
             Log.d(TAG, "Verified signature succeeded");
         } else {
             Log.d(TAG, "Rand 1: " + TweetNaclFast.hexEncodeToString(rand1));
@@ -205,6 +242,60 @@ public class DualSaltTest {
             Log.d(TAG, "Verified signature failed");
             throw new Exception();
         }
+    }
+
+    private static void testNegativeDualSign(byte[] rand1, byte[] rand2, String testString) throws Exception {
+        System.out.println("\nTest negative dual sign");
+
+        byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
+        byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
+        byte[] secKeyA = new byte[DualSalt.secretKeyLength];
+        byte[] secKeyB = new byte[DualSalt.secretKeyLength];
+        DualSalt.createKeyPair(pubKeyA, secKeyA, rand1);
+        DualSalt.createKeyPair(pubKeyB, secKeyB, rand2);
+        byte[] message = testString.getBytes();
+
+        byte[] virtualPublicKey = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
+
+        byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, secKeyA);
+        byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB);
+
+        int steps = 10;
+        for (int i = 0; i <= steps; i++) {
+            int j = ((m2.length-1)*i)/steps;
+            byte[]  tempM2 = m2.clone();
+            tempM2[j] = (byte) (tempM2[j] ^ 0x1);
+            try {
+                DualSalt.signCreateDual3(m1, tempM2, pubKeyA, secKeyA);
+                Log.d(TAG, "Rand1: " + TweetNaclFast.hexEncodeToString(rand1));
+                Log.d(TAG, "Rand2: " + TweetNaclFast.hexEncodeToString(rand2));
+                Log.d(TAG, "Test string: \"" + testString + "\"");
+                Log.d(TAG, "Validated succeeded but it should not");
+                throw new Exception();
+            }
+            catch (IllegalArgumentException iae){
+                // Do nothing. It shall fail.
+            }
+        }
+
+        for (int i = 0; i <= steps; i++) {
+            int j = ((pubKeyA.length-1)*i)/steps;
+            byte[]  tempPubKeyA = pubKeyA.clone();
+            tempPubKeyA[j] = (byte) (tempPubKeyA[j] ^ 0x1);
+            try {
+                DualSalt.signCreateDual3(m1, m2, tempPubKeyA, secKeyA);
+                Log.d(TAG, "Rand1: " + TweetNaclFast.hexEncodeToString(rand1));
+                Log.d(TAG, "Rand2: " + TweetNaclFast.hexEncodeToString(rand2));
+                Log.d(TAG, "Test string: \"" + testString + "\"");
+                Log.d(TAG, "Validated succeeded but it should not");
+                throw new Exception();
+            }
+            catch (IllegalArgumentException iae){
+                // Do nothing. It shall fail.
+            }
+        }
+
+        Log.d(TAG, "Signature validation fail when it shall");
     }
 
     static void testSingleDecrypt(byte[] rand1, byte[] rand2, byte[] rand3, String testString) throws Exception {
@@ -217,15 +308,6 @@ public class DualSaltTest {
         byte[] message = testString.getBytes();
 
         byte[] cipherMessage = DualSalt.encrypt(message, rand2, pubKey, rand3);
-
-        if (cipherMessage == null) {
-            Log.d(TAG, "Rand 1: " + TweetNaclFast.hexEncodeToString(rand1));
-            Log.d(TAG, "Rand 2: " + TweetNaclFast.hexEncodeToString(rand2));
-            Log.d(TAG, "Rand 3: " + TweetNaclFast.hexEncodeToString(rand3));
-            Log.d(TAG, "Test string: \"" + testString + "\"");
-            Log.d(TAG, "Decrypt message failed");
-            throw new Exception();
-        }
         Log.d(TAG, "Cipher message:  " + TweetNaclFast.hexEncodeToString(cipherMessage));
 
         byte[] decryptedMessage = DualSalt.decrypt(cipherMessage, nonce, secKey);
@@ -249,6 +331,44 @@ public class DualSaltTest {
         }
     }
 
+    private static void testNegativeSingleDecrypt(byte[] rand1, byte[] rand2, byte[] rand3, String testString) throws Exception {
+        System.out.println("\nTest negative single decrypt");
+
+        byte[] nonce = new byte[DualSalt.nonceLength];
+        byte[] pubKey = new byte[DualSalt.publicKeyLength];
+        byte[] secKey = new byte[DualSalt.secretKeyLength];
+        DualSalt.createKeyPair(pubKey, secKey, rand1);
+        byte[] message = testString.getBytes();
+
+        byte[] cipherMessage = DualSalt.encrypt(message, rand2, pubKey, rand3);
+        Log.d(TAG, "Cipher message:  " + TweetNaclFast.hexEncodeToString(cipherMessage));
+
+        int steps = 10;
+        for (int i = 0; i <= steps; i++) {
+            int j = ((cipherMessage.length-1)*i)/steps;
+            byte[]  tempCipherMessage = cipherMessage.clone();
+            tempCipherMessage[j] = (byte) (tempCipherMessage[j] ^ 0x1);
+            try {
+                DualSalt.decrypt(tempCipherMessage, nonce, secKey);
+                Log.d(TAG, "Nonce:  " + TweetNaclFast.hexEncodeToString(nonce));
+                Log.d(TAG, "Rand 2: " + TweetNaclFast.hexEncodeToString(rand2));
+                Log.d(TAG, "Message:  " + TweetNaclFast.hexEncodeToString(message));
+
+                Log.d(TAG, "Rand 1: " + TweetNaclFast.hexEncodeToString(rand1));
+                Log.d(TAG, "Rand 2: " + TweetNaclFast.hexEncodeToString(rand2));
+                Log.d(TAG, "Rand 3: " + TweetNaclFast.hexEncodeToString(rand3));
+                Log.d(TAG, "Test string: \"" + testString + "\"");
+                Log.d(TAG, "Decryption succeeded but it should not");
+                throw new Exception();
+            }
+            catch (IllegalArgumentException iae){
+                // Do nothing. It shall fail.
+            }
+        }
+
+        Log.d(TAG, "Message decryption validation fail when it shall");
+    }
+
     static void testDualDecrypt(byte[] rand1, byte[] rand2, byte[] rand3, byte[] rand4, String testString) throws Exception {
         System.out.println("\nTest dual decrypt");
 
@@ -263,16 +383,6 @@ public class DualSaltTest {
         byte[] message = testString.getBytes();
 
         byte[] cipherMessage = DualSalt.encrypt(message, rand3, pubKeyAB, rand4);
-
-        if (cipherMessage == null) {
-            Log.d(TAG, "Rand 1: " + TweetNaclFast.hexEncodeToString(rand1));
-            Log.d(TAG, "Rand 2: " + TweetNaclFast.hexEncodeToString(rand2));
-            Log.d(TAG, "Rand 2: " + TweetNaclFast.hexEncodeToString(rand3));
-            Log.d(TAG, "Rand 3: " + TweetNaclFast.hexEncodeToString(rand4));
-            Log.d(TAG, "Test string: \"" + testString + "\"");
-            Log.d(TAG, "Decrypt message failed");
-            throw new Exception();
-        }
         Log.d(TAG, "Cipher message: " + TweetNaclFast.hexEncodeToString(cipherMessage));
 
         byte[] d1 = DualSalt.decryptDual1(cipherMessage, secKeyA);
@@ -293,6 +403,72 @@ public class DualSaltTest {
             Log.d(TAG, "Decrypt message failed");
             throw new Exception();
         }
+    }
+
+    private static void testNegativeDualDecrypt(byte[] rand1, byte[] rand2, byte[] rand3, byte[] rand4, String testString) throws Exception {
+        System.out.println("\nTest negative dual decrypt");
+
+        byte[] nonce = new byte[DualSalt.nonceLength];
+        byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
+        byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
+        byte[] secKeyA = new byte[DualSalt.secretKeyLength];
+        byte[] secKeyB = new byte[DualSalt.secretKeyLength];
+        DualSalt.createKeyPair(pubKeyA, secKeyA, rand1);
+        DualSalt.createKeyPair(pubKeyB, secKeyB, rand2);
+        byte[] pubKeyAB = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
+        byte[] message = testString.getBytes();
+
+        byte[] cipherMessage = DualSalt.encrypt(message, rand3, pubKeyAB, rand4);
+        Log.d(TAG, "Cipher message: " + TweetNaclFast.hexEncodeToString(cipherMessage));
+
+        byte[] d1 = DualSalt.decryptDual1(cipherMessage, secKeyA);
+
+        int steps = 10;
+        for (int i = 0; i <= steps; i++) {
+            int j = ((cipherMessage.length-1)*i)/steps;
+            byte[]  tempCipherMessage = cipherMessage.clone();
+            tempCipherMessage[j] = (byte) (tempCipherMessage[j] ^ 0x1);
+            try {
+                DualSalt.decryptDual2(d1, tempCipherMessage, nonce, secKeyB);
+                Log.d(TAG, "Nonce:  " + TweetNaclFast.hexEncodeToString(nonce));
+                Log.d(TAG, "Rand 2: " + TweetNaclFast.hexEncodeToString(rand2));
+                Log.d(TAG, "Message:  " + TweetNaclFast.hexEncodeToString(message));
+
+                Log.d(TAG, "Rand 1: " + TweetNaclFast.hexEncodeToString(rand1));
+                Log.d(TAG, "Rand 2: " + TweetNaclFast.hexEncodeToString(rand2));
+                Log.d(TAG, "Rand 3: " + TweetNaclFast.hexEncodeToString(rand3));
+                Log.d(TAG, "Test string: \"" + testString + "\"");
+                Log.d(TAG, "Decryption succeeded but it should not");
+                throw new Exception();
+            }
+            catch (IllegalArgumentException iae){
+                // Do nothing. It shall fail.
+            }
+        }
+
+        for (int i = 0; i <= steps; i++) {
+            int j = ((d1.length-1)*i)/steps;
+            byte[]  tempD1 = d1.clone();
+            tempD1[j] = (byte) (tempD1[j] ^ 0x1);
+            try {
+                DualSalt.decryptDual2(tempD1, cipherMessage, nonce, secKeyB);
+                Log.d(TAG, "Nonce:  " + TweetNaclFast.hexEncodeToString(nonce));
+                Log.d(TAG, "Rand 2: " + TweetNaclFast.hexEncodeToString(rand2));
+                Log.d(TAG, "Message:  " + TweetNaclFast.hexEncodeToString(message));
+
+                Log.d(TAG, "Rand 1: " + TweetNaclFast.hexEncodeToString(rand1));
+                Log.d(TAG, "Rand 2: " + TweetNaclFast.hexEncodeToString(rand2));
+                Log.d(TAG, "Rand 3: " + TweetNaclFast.hexEncodeToString(rand3));
+                Log.d(TAG, "Test string: \"" + testString + "\"");
+                Log.d(TAG, "Decryption succeeded but it should not");
+                throw new Exception();
+            }
+            catch (IllegalArgumentException iae){
+                // Do nothing. It shall fail.
+            }
+        }
+
+        Log.d(TAG, "Message decryption validation fail when it shall");
     }
 
     private static void testEddsaTestVector() throws Exception {
@@ -340,6 +516,7 @@ public class DualSaltTest {
                 byte[] rand1 = TweetNaclFast.hexDecode("ac49000da11249ea3510941703a7e21a39837c4d2d5300daebbd532df20f8135");
                 byte[] rand2 = TweetNaclFast.hexDecode("e56f0eef73ade8f79bc1d16a99cbc5e4995afd8c14adb49410ecd957aecc8d02");
                 byte[] rand3 = TweetNaclFast.hexDecode("995afd8c14adb49410ecd957aecc8d02e56f0eef73ade8f79bc1d16a99cbc5e4");
+                byte[] nonce = TweetNaclFast.hexDecode("10ecd957aecc8d02e56f0eef73ade8f79bc1d16a99cbc5e4");
 
                 testKeyAddition(rand1, rand2);
                 testKeyAddition(rand1, rand3);
@@ -361,7 +538,7 @@ public class DualSaltTest {
                 testDualSign(rand1, rand3, "The best signature in the all the worlds, You know like all all");
                 testDualSign(rand2, rand3, "There could be only one ultimate signature and this is it. Stop arguing");
 
-                byte[] nonce = TweetNaclFast.hexDecode("10ecd957aecc8d02e56f0eef73ade8f79bc1d16a99cbc5e4");
+
                 testSingleDecrypt(rand1, nonce, rand2, "The best decryption in the world");
                 testSingleDecrypt(rand1, nonce, rand3, "The best decryption in the all the worlds, You know like all all");
                 testSingleDecrypt(rand2, nonce, rand3, "There could be only one ultimate decryption and this is it. Stop arguing");
@@ -371,6 +548,23 @@ public class DualSaltTest {
                 testDualDecrypt(rand2, rand3, nonce, rand1, "There could be only one ultimate decryption and this is it. Stop arguing");
 
                 testEddsaTestVector();
+
+                testNegativeSingleSign(rand1, "The best signature in the world");
+                testNegativeSingleSign(rand2, "The best signature in the all the worlds, You know like all all");
+                testNegativeSingleSign(rand3, "There could be only one ultimate signature and this is it. Stop arguing");
+
+                testNegativeDualSign(rand1, rand2, "The best signature in the world");
+                testNegativeDualSign(rand1, rand3, "The best signature in the all the worlds, You know like all all");
+                testNegativeDualSign(rand2, rand3, "There could be only one ultimate signature and this is it. Stop arguing");
+
+                testNegativeSingleDecrypt(rand1, nonce, rand2, "The best decryption in the world");
+                testNegativeSingleDecrypt(rand1, nonce, rand3, "The best decryption in the all the worlds, You know like all all");
+                testNegativeSingleDecrypt(rand2, nonce, rand3, "There could be only one ultimate decryption and this is it. Stop arguing");
+
+                testNegativeDualDecrypt(rand1, rand2, nonce, rand3, "The best decryption in the world");
+                testNegativeDualDecrypt(rand3, rand1, nonce, rand2, "The best decryption in the all the worlds, You know like all all");
+                testNegativeDualDecrypt(rand2, rand3, nonce, rand1, "There could be only one ultimate decryption and this is it. Stop arguing");
+
 
             } catch (Exception e) {
                 e.printStackTrace();

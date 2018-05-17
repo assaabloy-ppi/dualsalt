@@ -41,7 +41,6 @@ public class DualSalt {
     // TODO
     // Build with JAVA 7
     // Readme hello world
-    // Negative testcase
     // Speed test? Compared to tweetNaCl
 
     private static final int secretRandomLength = 32;
