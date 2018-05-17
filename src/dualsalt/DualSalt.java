@@ -1,5 +1,7 @@
 package dualsalt;
 
+import java.util.Arrays;
+
 /**
  * Crypto library that enable dual signing and decryption (2 of 2) without the secret keys never being in
  * the same device. It also has signatures that is compatible with TweetNaCl (EdDSA). The idea is that the
@@ -43,6 +45,8 @@ public class DualSalt {
     // Speed test? Compared to tweetNaCl
 
     private static final int secretRandomLength = 32;
+
+    private static final int hashLength = 64;
 
     public static final int secretKeyLength = TweetNaclFast.ScalarMult.scalarLength + secretRandomLength;
 
@@ -102,36 +106,49 @@ public class DualSalt {
      * This function is used to "rotate" the two secret keys used to build up a dual key (virtual key pair). The two
      * key pairs kan be changed in such a way that the addition of there two public keys still adds up to the same value.
      * Run rotateKey() on the first key pair with the parameter first sat to true and then run rotateKey() on the second
-     * key pair with the param first set to false. Reuse the same data for random1 both time.
-     * random1 is recommended to be sent between devices in a encrypted channel with forward secrecy such as saltChannel
+     * key pair with the param first set to false. Reuse the same data for parameter random both time.
+     * Parameter random is recommended to be sent between devices in a encrypted channel with forward secrecy such as
+     * saltChannel
      * ************************************************
      * createKeyPair(A, a, r1)
      * createKeyPair(B, b, r2)
      * C1 = addPublicKeys(A, B)
-     * rotateKey(A, a, r3, true, r4) <- Change A and a
-     * rotateKey(B, b, r3, false, r5) <- Change B and b
+     * rotateKey(A, a, r3, true) <- Change A and a
+     * rotateKey(B, b, r3, false) <- Change B and b
      * C1 == addPublicKeys(A, B)
      * ***********************************************
      * @param publicKey (out) The new public key after rotation
      * @param secretKey (in/out) The earlier secret key in and the resulting secret key out after rotation
-     * @param random1   Random for the scalar multiplication part. Reuse for both parts in a virtual key pair
+     * @param random    Random for the scalar multiplication part. Reuse for both parts in a virtual key pair
      * @param first     Shall be different between the to parts of the virtual key pair
-     * @param random2   Random used for signing shall be different every time
      */
-    public static void rotateKey(byte[] publicKey, byte[] secretKey, byte[] random1, boolean first, byte[] random2) {
+    public static void rotateKey(byte[] publicKey, byte[] secretKey, byte[] random, boolean first) {
         if (publicKey.length != publicKeyLength) throw new IllegalArgumentException("Public key has the wrong length");
         if (secretKey.length != secretKeyLength) throw new IllegalArgumentException("Secret key has the wrong length");
-        if (random1.length != seedLength) throw new IllegalArgumentException("Random1 source has the wrong length");
-        if (random2.length != seedLength) throw new IllegalArgumentException("Random2 source has the wrong length");
+        if (random.length != seedLength) throw new IllegalArgumentException("Random source has the wrong length");
 
+        byte[] tempSecretKey = new byte[secretKeyLength];
+        TweetNaclFast.crypto_hash(tempSecretKey, random, 0, seedLength);
+        byte[] scalarDiff = Arrays.copyOfRange(tempSecretKey, 0, TweetNaclFast.ScalarMult.scalarLength);
+        scalarDiff[0] &= 248;
+        scalarDiff[31] &= 127;
+
+        // To reviewer: The new scalar might not have the second highest bit set to true. This is the case in key creation.
+        // It is set to true with "secretKey[31] |= 64;". The highest bit can also be set to
+        // true even if it should be false "scalarDiff[31] &= 127;". Will this break security?
         byte[] newScalar;
         if (first) {
-            newScalar = addScalars(secretKey, random1);
+            newScalar = addScalars(secretKey, scalarDiff);
         } else {
-            newScalar = subtractScalars(secretKey, random1);
+            newScalar = subtractScalars(secretKey, scalarDiff);
         }
+
+        byte[] randomDiff = Arrays.copyOfRange(tempSecretKey, TweetNaclFast.ScalarMult.scalarLength, secretKeyLength);
+        byte[] oldRandom = Arrays.copyOfRange(secretKey, TweetNaclFast.ScalarMult.scalarLength, secretKeyLength);
+        byte[] newRandom = addScalars(oldRandom, randomDiff);
+
         System.arraycopy(newScalar, 0, secretKey, 0, TweetNaclFast.ScalarMult.scalarLength);
-        System.arraycopy(random2, 0, secretKey, TweetNaclFast.ScalarMult.scalarLength, secretRandomLength);
+        System.arraycopy(newRandom, 0, secretKey, TweetNaclFast.ScalarMult.scalarLength, secretRandomLength);
         byte[] tempPublicKey = calculatePublicKey(secretKey);
         System.arraycopy(tempPublicKey, 0, publicKey, 0, publicKeyLength);
     }
@@ -326,13 +343,9 @@ public class DualSalt {
         if (secretKeyB.length != secretKeyLength) throw new IllegalArgumentException("Secret key has the wrong length");
 
         byte[] m2 = new byte[m2Length];
-        byte[] virtualPublicKey = new byte[publicKeyLength];
-        byte[] randomGroupElA = new byte[TweetNaclFast.ScalarMult.groupElementLength];
-        byte[] message = new byte[m1.length - m1HeaderLength];
-
-        System.arraycopy(m1, 0, virtualPublicKey, 0, publicKeyLength);
-        System.arraycopy(m1, publicKeyLength, randomGroupElA, 0, TweetNaclFast.ScalarMult.groupElementLength);
-        System.arraycopy(m1, m1HeaderLength, message, 0, message.length);
+        byte[] virtualPublicKey = Arrays.copyOfRange(m1, 0, publicKeyLength);
+        byte[] randomGroupElA = Arrays.copyOfRange(m1, publicKeyLength, m1HeaderLength);
+        byte[] message = Arrays.copyOfRange(m1, m1HeaderLength, m1.length);
 
         byte[] pseudoRandomB = calculateRand(message, secretKeyB);
         byte[] randomGroupElB = calculatePublicKey(pseudoRandomB);
@@ -360,16 +373,11 @@ public class DualSalt {
         if (publicKeyA.length != publicKeyLength) throw new IllegalArgumentException("Public key has the wrong length");
         if (secretKeyA.length != secretKeyLength) throw new IllegalArgumentException("Secret key has the wrong length");
 
-        byte[] virtualPublicKey = new byte[publicKeyLength];
-        byte[] message = new byte[m1.length - m1HeaderLength];
-        byte[] randomGroupElB = new byte[TweetNaclFast.ScalarMult.groupElementLength];
-        byte[] signatureB = new byte[TweetNaclFast.ScalarMult.scalarLength];
+        byte[] virtualPublicKey = Arrays.copyOfRange(m1, 0, publicKeyLength);
+        byte[] message = Arrays.copyOfRange(m1, m1HeaderLength, m1.length);
+        byte[] randomGroupElB = Arrays.copyOfRange(m2, 0, TweetNaclFast.ScalarMult.groupElementLength);
+        byte[] signatureB = Arrays.copyOfRange(m2, TweetNaclFast.ScalarMult.groupElementLength, m2Length);
         byte[] sign = new byte[signatureLength + message.length];
-
-        System.arraycopy(m1, 0, virtualPublicKey, 0, publicKeyLength);
-        System.arraycopy(m1, m1HeaderLength, message, 0, message.length);
-        System.arraycopy(m2, 0, randomGroupElB, 0, TweetNaclFast.ScalarMult.groupElementLength);
-        System.arraycopy(m2, TweetNaclFast.ScalarMult.groupElementLength, signatureB, 0, TweetNaclFast.ScalarMult.scalarLength);
 
         // Repeat signCreateDual1
         byte[] pseudoRandomA = calculateRand(message, secretKeyA);
@@ -397,7 +405,7 @@ public class DualSalt {
      * @return          The pseudo random
      */
     private static byte[] calculateRand(byte[] message, byte[] secretKey) {
-        byte[] rand = new byte[64]; // 64 instead of 32. Reduction in the end
+        byte[] rand = new byte[hashLength];
         byte[] tempBuffer = new byte[secretRandomLength + message.length];
 
         System.arraycopy(secretKey, TweetNaclFast.ScalarMult.scalarLength, tempBuffer, 0, secretRandomLength);
@@ -416,7 +424,7 @@ public class DualSalt {
      * @return              The hash value.
      */
     private static byte[] calculateHash(byte[] randomGroupEl, byte[] publicKey, byte[] message) {
-        byte[] hash = new byte[64]; // 64 instead of 32. Reduction in the end
+        byte[] hash = new byte[hashLength];
         byte[] tempBuffer = new byte[TweetNaclFast.ScalarMult.groupElementLength + publicKeyLength + message.length];
 
         System.arraycopy(randomGroupEl, 0, tempBuffer, 0, TweetNaclFast.ScalarMult.groupElementLength);
@@ -516,8 +524,7 @@ public class DualSalt {
         if (nonce.length != nonceLength) throw new IllegalArgumentException("Nonce has the wrong length");
         if (secretKey.length != secretKeyLength) throw new IllegalArgumentException("Secret key has the wrong length");
 
-        byte[] cipherText = new byte[cipherMessage.length - cipherMessageHeaderLength];
-        System.arraycopy(cipherMessage, cipherMessageHeaderLength, cipherText, 0, cipherText.length);
+        byte[] cipherText = Arrays.copyOfRange(cipherMessage, cipherMessageHeaderLength, cipherMessage.length);
         System.arraycopy(cipherMessage, 0, nonce, 0, nonceLength);
 
         byte[] sharedGroupEl = decryptDual1(cipherMessage, secretKey);
@@ -544,8 +551,7 @@ public class DualSalt {
         if (secretKeyA.length != secretKeyLength) throw new IllegalArgumentException("Secret key has the wrong length");
 
         byte[] d1 = new byte[d1Length];
-        byte[] tempPublicKey = new byte[publicKeyLength];
-        System.arraycopy(cipherMessage, nonceLength, tempPublicKey, 0, publicKeyLength);
+        byte[] tempPublicKey = Arrays.copyOfRange(cipherMessage, nonceLength, cipherMessageHeaderLength);
 
         long[][] p = createUnpackedGroupEl();
         long[][] q = unpack(tempPublicKey);
@@ -569,12 +575,10 @@ public class DualSalt {
         if (nonce.length != nonceLength) throw new IllegalArgumentException("Nonce has the wrong length");
         if (secretKeyB.length != secretKeyLength) throw new IllegalArgumentException("Secret key has the wrong length");
 
-        byte[] tempPublicKey = new byte[publicKeyLength];
-        byte[] sharedGroupEl = new byte[TweetNaclFast.ScalarMult.groupElementLength];
-        byte[] cipherText = new byte[cipherMessage.length - cipherMessageHeaderLength];
         System.arraycopy(cipherMessage, 0, nonce, 0, nonceLength);
-        System.arraycopy(cipherMessage, nonceLength, tempPublicKey, 0, publicKeyLength);
-        System.arraycopy(cipherMessage, cipherMessageHeaderLength, cipherText, 0, cipherText.length);
+        byte[] tempPublicKey = Arrays.copyOfRange(cipherMessage, nonceLength, cipherMessageHeaderLength);
+        byte[] cipherText = Arrays.copyOfRange(cipherMessage, cipherMessageHeaderLength, cipherMessage.length);
+        byte[] sharedGroupEl = new byte[TweetNaclFast.ScalarMult.groupElementLength];
 
         long[][] p = createUnpackedGroupEl();
         long[][] q = unpack(tempPublicKey);
@@ -605,9 +609,7 @@ public class DualSalt {
 
         TweetNaclFast.crypto_box_afternm(cipherBuffer, messageBuffer, messageBuffer.length, nonce, sharedKey);
 
-        byte[] cipherText = new byte[messageBuffer.length - TweetNaclFast.Box.boxzerobytesLength];
-        System.arraycopy(cipherBuffer, TweetNaclFast.Box.boxzerobytesLength, cipherText, 0, messageBuffer.length - TweetNaclFast.Box.boxzerobytesLength);
-        return cipherText;
+        return Arrays.copyOfRange(cipherBuffer, TweetNaclFast.Box.boxzerobytesLength, cipherBuffer.length);
     }
 
     /**
@@ -630,8 +632,6 @@ public class DualSalt {
             throw new IllegalArgumentException("Can not decrypt message");
         }
 
-        byte[] message = new byte[messageBuffer.length - TweetNaclFast.Box.zerobytesLength];
-        System.arraycopy(messageBuffer, TweetNaclFast.Box.zerobytesLength, message, 0, message.length);
-        return message;
+        return Arrays.copyOfRange(messageBuffer, TweetNaclFast.Box.zerobytesLength, messageBuffer.length);
     }
 }
