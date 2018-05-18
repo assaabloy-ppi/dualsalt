@@ -465,8 +465,7 @@ public class DualSaltTest {
             byte[] dutMessage = TweetNaclFast.hexDecode(items[2]);
             byte[] dutSignature = TweetNaclFast.hexDecode(items[3]);
 
-            byte[] secretKeySeed = new byte[DualSalt.seedLength];
-            System.arraycopy(dutSecretKey, 0, secretKeySeed, 0, DualSalt.seedLength);
+            byte[] secretKeySeed = Arrays.copyOfRange(dutSecretKey, 0, DualSalt.seedLength);
             byte[] secretKey = new byte[DualSalt.secretKeyLength];
             byte[] publicKey = new byte[DualSalt.publicKeyLength];
             DualSalt.createKeyPair(publicKey, secretKey, secretKeySeed);
