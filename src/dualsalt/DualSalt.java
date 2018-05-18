@@ -1,3 +1,5 @@
+// Copyright (c) 2018 ASSA ABLOY AB
+
 package dualsalt;
 
 import java.util.Arrays;
@@ -8,39 +10,8 @@ import java.util.Arrays;
  * end device that validates a signature or encrypt a message dose not have to know that the the public key it
  * works on really is a addison of two public keys and that it in fact are two devices that represent that
  * public key.
- * <p>
- * Disclaimer
- * We take no responsibility for the reliability or security of this library. Use at your own risk.
- * <p>
- * Design decisions
- * - The library dose not use x25519 as TweetNaCl uses. This is for two reasons for this.
- * Minimizing the amount of functions dependent on in TweetNaCl
- * Enabling the possibility to use the same long term key for both signing and decryption. (Common is to separate
- * this two for security reasons)
- * - The secret key used in TweetNaCl is stored always stored with the public key. We do not do that anymore
- * The secret key is then hashed on usage to get a scalar part and a rand seed to the r creation in signing.
- * To enable rotateKey() the secret key is now stored after the hashing with makes it bigger. So a secret key
- * is still 64 bytes
- * - We limited the lib to just handel 2 of 2 signing and decryption even if it easy could have benn made
- * for 3 of 3 etc. The reason for this is simplicity and that we came to the conclusion that 2 of 2 handles most
- * the use cases we could throw at it.
- * - The code is not written to pure JAVA standards but has a more C-ish feel to it with static functions and byte
- * arrays tossed around. This is course the code sooner or later shall bee ported to other languages and the be
- * easy to compare between each other. Another reason is to stay more close to the original TweetNaCl code
- * by Daniel J. Bernstein, Tanja Lange, Peter Schwabe.
- * - No real effort has been done to optimize the library for speed. At multiple locations the use of subroutines
- * makes so that parameters are packed and then unpacked (quite time consuming) but this has heighten the
- * readability of the code. The devices that we see using this library will not have any high recuirements.
- * Optimizations can always be done later on if the need occur.
- * <p>
- * Thanks to
- * - InstantWebP2P/tweetnacl-java that is the implementation of TweetNaCl that DualSalt uses as foundation.
  */
 public class DualSalt {
-
-    // TODO
-    // Build with JAVA 7
-    // Speed test? Compared to tweetNaCl
 
     private static final int secretRandomLength = 32;
 
