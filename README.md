@@ -9,6 +9,7 @@ We take no responsibility for the reliability or security of this library. Use a
   - Minimizing the amount of function dependencies to TweetNaCl
   - Enabling the possibility to use the same long term key for both signing and decryption. (Common is to separate
 these two for security reasons)
+  - Doing group element addition (public key) on x25519 is tricky because the y coordinate is hard to recreate.
 - The secret key used in TweetNaCl is always stored with the public key. This library does not do that. The secret key in TweetNaCl is hashed on usage to get a scalar and a rand seed to the r creation in signing. To enable rotateKey() in dualsalt the secret key is stored after the hashing which makes it longer resulting in a secret key that is still 64 bytes
 - Dualsalt is limited to just handle 2 of 2 signing and decryption even if it easy could have been made for 3 of 3 etc. The reason for this is simplicity and the conclusion that 2 of 2 handles most of the use cases we could throw at it.
 - The code is not written to pure JAVA standards and has a more C-ish feel to it with static functions and byte arrays that are tossed around. This is because the code sooner or later shall be ported to other languages and then the code comparing will be easier. Another reason is to stay closer to the original TweetNaCl code by Daniel J. Bernstein, Tanja Lange, Peter Schwabe.
