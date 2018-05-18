@@ -308,7 +308,7 @@ public class DualSalt {
      * @return           m2 message to be used in signCreateDual3()
      */
     public static byte[] signCreateDual2(byte[] m1, byte[] secretKeyB) {
-        if (m1.length <= m1HeaderLength) throw new IllegalArgumentException("M1 message is to short");
+        if (m1.length < m1HeaderLength) throw new IllegalArgumentException("M1 message is to short");
         if (secretKeyB.length != secretKeyLength) throw new IllegalArgumentException("Secret key has the wrong length");
 
         byte[] m2 = new byte[m2Length];
@@ -337,7 +337,7 @@ public class DualSalt {
      * @return           The signature
      */
     public static byte[] signCreateDual3(byte[] m1, byte[] m2, byte[] publicKeyA, byte[] secretKeyA) {
-        if (m1.length <= m1HeaderLength) throw new IllegalArgumentException("M1 message is to short");
+        if (m1.length < m1HeaderLength) throw new IllegalArgumentException("M1 message is to short");
         if (m2.length != m2Length) throw new IllegalArgumentException("M2 message has the wrong length");
         if (publicKeyA.length != publicKeyLength) throw new IllegalArgumentException("Public key has the wrong length");
         if (secretKeyA.length != secretKeyLength) throw new IllegalArgumentException("Secret key has the wrong length");
