@@ -4,9 +4,6 @@ import dualsalt.DualSalt;
 import dualsalt.TweetNaclFast;
 
 public class DualSaltRandomTest {
-
-    private static final String TAG = "DualSaltRandomTest";
-
     private void testRotateKeysRandom() throws Exception {
         System.out.println("\nTest rotate keys random");
 
@@ -63,27 +60,23 @@ public class DualSaltRandomTest {
         }
     }
 
-    private void start() {
-        (new Thread(() -> {
-            Log.d(TAG, "start test");
+    private void run() {
+        try {
+            testRotateKeysRandom();
+            testDualSignRandom();
+            testSingleDecryptRandom();
+            testDualDecryptRandom();
 
-            try {
-                testRotateKeysRandom();
-                testDualSignRandom();
-                testSingleDecryptRandom();
-                testDualDecryptRandom();
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-
-        })).start();
-
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+        
+        System.out.println("\nSUCCESS! All tests were successful.");
     }
 
     public static void main(String[] args) {
         DualSaltRandomTest t = new DualSaltRandomTest();
-        t.start();
+        t.run();
     }
 }

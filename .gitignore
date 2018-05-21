@@ -1,2 +1,9 @@
-out/*
+# Build output
+bin/
+
+# IDEA
 .idea/*
+
+# Eclipse
+.classpath
+.project

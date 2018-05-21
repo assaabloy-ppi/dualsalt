@@ -485,74 +485,71 @@ public class DualSaltTest {
         Log.d(TAG, "Test succeeded");
     }
 
-    private void start() {
-        (new Thread(() -> {
-            Log.d(TAG, "start test");
+    private void run() {
+        try {
+            byte[] rand1 = TweetNaclFast.hexDecode("ac49000da11249ea3510941703a7e21a39837c4d2d5300daebbd532df20f8135");
+            byte[] rand2 = TweetNaclFast.hexDecode("e56f0eef73ade8f79bc1d16a99cbc5e4995afd8c14adb49410ecd957aecc8d02");
+            byte[] rand3 = TweetNaclFast.hexDecode("995afd8c14adb49410ecd957aecc8d02e56f0eef73ade8f79bc1d16a99cbc5e4");
+            byte[] nonce = TweetNaclFast.hexDecode("10ecd957aecc8d02e56f0eef73ade8f79bc1d16a99cbc5e4");
 
-            try {
-                byte[] rand1 = TweetNaclFast.hexDecode("ac49000da11249ea3510941703a7e21a39837c4d2d5300daebbd532df20f8135");
-                byte[] rand2 = TweetNaclFast.hexDecode("e56f0eef73ade8f79bc1d16a99cbc5e4995afd8c14adb49410ecd957aecc8d02");
-                byte[] rand3 = TweetNaclFast.hexDecode("995afd8c14adb49410ecd957aecc8d02e56f0eef73ade8f79bc1d16a99cbc5e4");
-                byte[] nonce = TweetNaclFast.hexDecode("10ecd957aecc8d02e56f0eef73ade8f79bc1d16a99cbc5e4");
+            testKeyAddition(rand1, rand2);
+            testKeyAddition(rand1, rand3);
+            testKeyAddition(rand2, rand3);
 
-                testKeyAddition(rand1, rand2);
-                testKeyAddition(rand1, rand3);
-                testKeyAddition(rand2, rand3);
+            testRotateKeys(rand1, rand2, rand3);
+            testRotateKeys(rand1, rand3, rand2);
+            testRotateKeys(rand2, rand3, rand1);
 
-                testRotateKeys(rand1, rand2, rand3);
-                testRotateKeys(rand1, rand3, rand2);
-                testRotateKeys(rand2, rand3, rand1);
+            testSingleSign(rand1, "The best signature in the world");
+            testSingleSign(rand2, "The best signature in the all the worlds, You know like all all");
+            testSingleSign(rand3, "There could be only one ultimate signature and this is it. Stop arguing");
 
-                testSingleSign(rand1, "The best signature in the world");
-                testSingleSign(rand2, "The best signature in the all the worlds, You know like all all");
-                testSingleSign(rand3, "There could be only one ultimate signature and this is it. Stop arguing");
+            testSubtractPubKey(rand1, rand2);
+            testSubtractPubKey(rand1, rand3);
+            testSubtractPubKey(rand2, rand3);
 
-                testSubtractPubKey(rand1, rand2);
-                testSubtractPubKey(rand1, rand3);
-                testSubtractPubKey(rand2, rand3);
-
-                testDualSign(rand1, rand2, "The best signature in the world");
-                testDualSign(rand1, rand3, "The best signature in the all the worlds, You know like all all");
-                testDualSign(rand2, rand3, "There could be only one ultimate signature and this is it. Stop arguing");
+            testDualSign(rand1, rand2, "The best signature in the world");
+            testDualSign(rand1, rand3, "The best signature in the all the worlds, You know like all all");
+            testDualSign(rand2, rand3, "There could be only one ultimate signature and this is it. Stop arguing");
 
 
-                testSingleDecrypt(rand1, nonce, rand2, "The best decryption in the world");
-                testSingleDecrypt(rand1, nonce, rand3, "The best decryption in the all the worlds, You know like all all");
-                testSingleDecrypt(rand2, nonce, rand3, "There could be only one ultimate decryption and this is it. Stop arguing");
+            testSingleDecrypt(rand1, nonce, rand2, "The best decryption in the world");
+            testSingleDecrypt(rand1, nonce, rand3, "The best decryption in the all the worlds, You know like all all");
+            testSingleDecrypt(rand2, nonce, rand3, "There could be only one ultimate decryption and this is it. Stop arguing");
 
-                testDualDecrypt(rand1, rand2, nonce, rand3, "The best decryption in the world");
-                testDualDecrypt(rand3, rand1, nonce, rand2, "The best decryption in the all the worlds, You know like all all");
-                testDualDecrypt(rand2, rand3, nonce, rand1, "There could be only one ultimate decryption and this is it. Stop arguing");
+            testDualDecrypt(rand1, rand2, nonce, rand3, "The best decryption in the world");
+            testDualDecrypt(rand3, rand1, nonce, rand2, "The best decryption in the all the worlds, You know like all all");
+            testDualDecrypt(rand2, rand3, nonce, rand1, "There could be only one ultimate decryption and this is it. Stop arguing");
 
-                testEddsaTestVector();
+            testEddsaTestVector();
 
-                testNegativeSingleSign(rand1, "The best signature in the world");
-                testNegativeSingleSign(rand2, "The best signature in the all the worlds, You know like all all");
-                testNegativeSingleSign(rand3, "There could be only one ultimate signature and this is it. Stop arguing");
+            testNegativeSingleSign(rand1, "The best signature in the world");
+            testNegativeSingleSign(rand2, "The best signature in the all the worlds, You know like all all");
+            testNegativeSingleSign(rand3, "There could be only one ultimate signature and this is it. Stop arguing");
 
-                testNegativeDualSign(rand1, rand2, "The best signature in the world");
-                testNegativeDualSign(rand1, rand3, "The best signature in the all the worlds, You know like all all");
-                testNegativeDualSign(rand2, rand3, "There could be only one ultimate signature and this is it. Stop arguing");
+            testNegativeDualSign(rand1, rand2, "The best signature in the world");
+            testNegativeDualSign(rand1, rand3, "The best signature in the all the worlds, You know like all all");
+            testNegativeDualSign(rand2, rand3, "There could be only one ultimate signature and this is it. Stop arguing");
 
-                testNegativeSingleDecrypt(rand1, nonce, rand2, "The best decryption in the world");
-                testNegativeSingleDecrypt(rand1, nonce, rand3, "The best decryption in the all the worlds, You know like all all");
-                testNegativeSingleDecrypt(rand2, nonce, rand3, "There could be only one ultimate decryption and this is it. Stop arguing");
+            testNegativeSingleDecrypt(rand1, nonce, rand2, "The best decryption in the world");
+            testNegativeSingleDecrypt(rand1, nonce, rand3, "The best decryption in the all the worlds, You know like all all");
+            testNegativeSingleDecrypt(rand2, nonce, rand3, "There could be only one ultimate decryption and this is it. Stop arguing");
 
-                testNegativeDualDecrypt(rand1, rand2, nonce, rand3, "The best decryption in the world");
-                testNegativeDualDecrypt(rand3, rand1, nonce, rand2, "The best decryption in the all the worlds, You know like all all");
-                testNegativeDualDecrypt(rand2, rand3, nonce, rand1, "There could be only one ultimate decryption and this is it. Stop arguing");
-
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            testNegativeDualDecrypt(rand1, rand2, nonce, rand3, "The best decryption in the world");
+            testNegativeDualDecrypt(rand3, rand1, nonce, rand2, "The best decryption in the all the worlds, You know like all all");
+            testNegativeDualDecrypt(rand2, rand3, nonce, rand1, "There could be only one ultimate decryption and this is it. Stop arguing");
 
 
-        })).start();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+
+        System.out.println("\nSUCCESS! All tests passed.");
     }
-
+    
     public static void main(String[] args) {
         DualSaltTest t = new DualSaltTest();
-        t.start();
+        t.run();
     }
 }
