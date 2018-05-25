@@ -456,32 +456,33 @@ public class DualSaltTest {
         URL url = DualSaltTest.class.getResource(fileName);
         File file = new File(url.getPath());
 
-        Scanner sc = new Scanner(file);
-        while (sc.hasNextLine()) {
-            String line = sc.nextLine();
-            String[] items = line.split(":");
-            byte[] dutSecretKey = TweetNaclFast.hexDecode(items[0]);
-            byte[] dutPublicKey = TweetNaclFast.hexDecode(items[1]);
-            byte[] dutMessage = TweetNaclFast.hexDecode(items[2]);
-            byte[] dutSignature = TweetNaclFast.hexDecode(items[3]);
-
-            byte[] secretKeySeed = Arrays.copyOfRange(dutSecretKey, 0, DualSalt.seedLength);
-            byte[] secretKey = new byte[DualSalt.secretKeyLength];
-            byte[] publicKey = new byte[DualSalt.publicKeyLength];
-            DualSalt.createKeyPair(publicKey, secretKey, secretKeySeed);
-            if (!Arrays.equals(dutPublicKey, publicKey)){
-                throw new Exception("Public key do not match");
-            }
-
-            byte[] signature = DualSalt.signCreate(dutMessage, publicKey, secretKey);
-            if (!DualSalt.signVerify(signature, publicKey)){
-                throw new Exception("Signature do not verify correctly");
-            }
-            if (!Arrays.equals(dutSignature, signature)){
-                throw new Exception("Signature do not match");
+        try (Scanner sc = new Scanner(file)) {
+            while (sc.hasNextLine()) {
+                String line = sc.nextLine();
+                String[] items = line.split(":");
+                byte[] dutSecretKey = TweetNaclFast.hexDecode(items[0]);
+                byte[] dutPublicKey = TweetNaclFast.hexDecode(items[1]);
+                byte[] dutMessage = TweetNaclFast.hexDecode(items[2]);
+                byte[] dutSignature = TweetNaclFast.hexDecode(items[3]);
+    
+                byte[] secretKeySeed = Arrays.copyOfRange(dutSecretKey, 0, DualSalt.seedLength);
+                byte[] secretKey = new byte[DualSalt.secretKeyLength];
+                byte[] publicKey = new byte[DualSalt.publicKeyLength];
+                DualSalt.createKeyPair(publicKey, secretKey, secretKeySeed);
+                if (!Arrays.equals(dutPublicKey, publicKey)){
+                    throw new Exception("Public key do not match");
+                }
+    
+                byte[] signature = DualSalt.signCreate(dutMessage, publicKey, secretKey);
+                if (!DualSalt.signVerify(signature, publicKey)){
+                    throw new Exception("Signature do not verify correctly");
+                }
+                if (!Arrays.equals(dutSignature, signature)){
+                    throw new Exception("Signature do not match");
+                }
             }
         }
-        sc.close();
+        
         Log.d(TAG, "Test succeeded");
     }
 

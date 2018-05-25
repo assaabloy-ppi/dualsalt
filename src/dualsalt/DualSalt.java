@@ -8,7 +8,7 @@ import java.util.Arrays;
  * Crypto library that enable dual signing and decryption (2 of 2) without the secret keys never being in
  * the same device. It also has signatures that is compatible with TweetNaCl (EdDSA). The idea is that the
  * end device that validates a signature or encrypt a message dose not have to know that the the public key it
- * works on really is a addison of two public keys and that it in fact are two devices that represent that
+ * works on really is an addition of two public keys and that it in fact are two devices that represent that
  * public key.
  */
 public class DualSalt {

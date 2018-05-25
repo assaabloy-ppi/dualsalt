@@ -5,7 +5,7 @@ import java.io.UnsupportedEncodingException;
 import dualsalt.TweetNaclFast;
 
 public final class TweetNaclFastTest {
-	private static final String TAG = "TweetNaclFastTest";
+	private static final String TAG = TweetNaclFastTest.class.getSimpleName();
 
 	/**
 	* Curve25519 test vectors to help ensure correctness and interoperability

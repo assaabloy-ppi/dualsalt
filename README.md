@@ -20,8 +20,11 @@ The code below shows how two parties, A, and B, together can create a virtual ke
 and together use it to sign 'message'.
 
 The example also shows how anyone who has the virtual public key can encrypt for the A-B pair
-and how A+B together can descrypt such a message.
+and how A-B together can decrypt such a message.
 
+Finally, the example show how A's and B's secret data can be rotated while preserving 
+there ability to represent the same virtual key pair.
+µ
 
     byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
     byte[] secKeyA = new byte[DualSalt.secretKeyLength];
@@ -46,7 +49,7 @@ and how A+B together can descrypt such a message.
     byte[] decryptedMessage = DualSalt.decryptDual2(d1, cipherMessage, nonce, secKeyB);
     message == decryptedMessage
     
-    // Rotate the two keypairs but the are still represented by the virtual key
+    // Rotate the two keypairs, but they still represent the same virtual key pair.
     byte[] random = random(32)
     DualSalt.rotateKey(pubKeyA, secKeyA, random, true);
     DualSalt.rotateKey(pubKeyB, secKeyB, random, false);
@@ -55,13 +58,13 @@ and how A+B together can descrypt such a message.
     m1 = DualSalt.signCreateDual1(message, virtualPublicKey, secKeyA);
     m2 = DualSalt.signCreateDual2(m1, secKeyB);
     signature = DualSalt.signCreateDual3(m1, m2, pubKeyA, secKeyA);
-    DualSalt.signVerify(signature, virtualPublicKey)
+    DualSalt.signVerify(signature, virtualPublicKey);
     
     // Decrypt data encrypted for the virtual key with the two new key pairs
     cipherMessage = DualSalt.encrypt(message, nonce, virtualPublicKey, random(32));
     d1 = DualSalt.decryptDual1(cipherMessage, secKeyA);
     decryptedMessage = DualSalt.decryptDual2(d1, cipherMessage, nonce, secKeyB);
-    message == decryptedMessage
+    message == decryptedMessage;
 
 
 

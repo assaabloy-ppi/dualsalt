@@ -6,7 +6,8 @@
 // 
 // * 2018-05-25, Frans Lundberg, commented a few lines to remove dependency on the Java 8
 //       class Base64 class (Java 8). Now it builds for Java 7.
-// 
+// * 2018-05-25, Frans Lundberg, removed field "TAG" since it was not used.
+//
 
 package dualsalt;
 
@@ -16,24 +17,16 @@ import java.lang.System;
 import java.util.concurrent.atomic.AtomicLong;
 
 
-/*
- * @description 
- *   TweetNacl.c Java porting
- * */
+/**
+ * TweetNacl.c Java porting. By Tom Zhou.
+ */
 public final class TweetNaclFast {
 
-	private final static String TAG = "TweetNaclFast";
-
-	/*
-	 * @description 
-	 *   Box algorithm, Public-key authenticated encryption 
-	 * */
+	/**
+	 * Box algorithm, public-key authenticated encryption 
+	 */
 	public static final class Box {
-
-		private final static String TAG = "Box";
-
 		private AtomicLong nonce;
-
 		private byte [] theirPublicKey;
 		private byte [] mySecretKey;
 		private byte [] sharedKey;
@@ -389,17 +382,12 @@ public final class TweetNaclFast {
 
 	}
 
-	/*
-	 * @description 
-	 *   Secret Box algorithm, secret key
-	 * */
+	/**
+	 * Secret box algorithm.
+	 */
 	public static final class SecretBox {
-
-		private final static String TAG = "SecretBox";
-
-		private AtomicLong nonce;
-
-		private byte [] key;
+	    private AtomicLong nonce;
+	    private byte [] key;
 
 		public SecretBox(byte [] key) {
 			this(key, 68);
@@ -439,14 +427,13 @@ public final class TweetNaclFast {
 			return n;
 		}
 
-		/*
-		 * @description 
-		 *   Encrypt and authenticates message using the key and the nonce. 
-		 *   The nonce must be unique for each distinct message for this key.
+		/**
+		 * Encrypt and authenticates message using the key and the nonce. 
+		 * The nonce must be unique for each distinct message for this key.
 		 *   
-		 *   Returns an encrypted and authenticated message, 
-		 *   which is nacl.secretbox.overheadLength longer than the original message.
-		 * */
+		 * Returns an encrypted and authenticated message, 
+		 * which is nacl.secretbox.overheadLength longer than the original message.
+		 */
 		public byte [] box(byte [] message) {
 			if (message==null) return null;
 			return box(message, 0, message.length);
@@ -596,19 +583,14 @@ public final class TweetNaclFast {
 
 	}
 
-	/*
-	 * @description
-	 *   Scalar multiplication, Implements curve25519.
-	 * */
+	/**
+	 * Scalar multiplication, Implements curve25519.
+	 */
 	public static final class ScalarMult {
-
-		private final static String TAG = "ScalarMult";
-
-		/*
-		 * @description
-		 *   Multiplies an integer n by a group element p and 
-		 *   returns the resulting group element.
-		 * */
+		/**
+		 * Multiplies an integer n by a group element p and 
+		 * returns the resulting group element.
+		 */
 		public static byte [] scalseMult(byte [] n, byte [] p) {
 			if (!(n.length==scalarLength && p.length==groupElementLength))
 				return null;
@@ -620,11 +602,10 @@ public final class TweetNaclFast {
 			return q;
 		}
 
-		/*
-		 * @description
-		 *   Multiplies an integer n by a standard group element and 
-		 *   returns the resulting group element.    	 
-		 * */
+		/**
+		 * Multiplies an integer n by a standard group element and 
+		 * returns the resulting group element.    	 
+		 */
 		public static byte [] scalseMult_base(byte [] n) {
 			if (!(n.length==scalarLength))
 				return null;
@@ -636,33 +617,27 @@ public final class TweetNaclFast {
 			return q;
 		}
 
-		/*
-		 * @description
-		 *   Length of scalar in bytes.
-		 * */
+		/**
+		 * Length of scalar in bytes.
+		 */
 		public static final int scalarLength        = 32;
 
-		/*
-		 * @description
-		 *   Length of group element in bytes.
-		 * */
+		/**
+		 * Length of group element in bytes.
+		 */
 		public static final int groupElementLength  = 32;
 
 	}
 
 
-	/*
-	 * @description 
-	 *   Hash algorithm, Implements SHA-512.
-	 * */
+	/**
+	 * Hash algorithm, Implements SHA-512.
+	 */
 	public static final class Hash {
 
-		private final static String TAG = "Hash";
-
-		/*
-		 * @description
-		 *   Returns SHA-512 hash of the message.
-		 * */
+		/**
+		 * Returns SHA-512 hash of the message.
+		 */
 		public static byte[] sha512(byte [] message) {
 			if (!(message!=null && message.length>0))
 				return null;
@@ -677,23 +652,18 @@ public final class TweetNaclFast {
 			return sha512(message.getBytes("utf-8"));
 		}
 		
-		/*
-		 * @description
-		 *   Length of hash in bytes.
-		 * */
-		public static final int hashLength       = 64;
+		/**
+		 * Length of hash in bytes.
+		 */
+		public static final int hashLength = 64;
 
 	}
 
 
-	/*
-	 * @description 
-	 *   Signature algorithm, Implements ed25519.
-	 * */
+	/**
+	 * Signature algorithm, Implements ed25519.
+	 */
 	public static final class Signature {
-
-		private final static String TAG = "Signature";
-
 		private byte [] theirPublicKey;
 		private byte [] mySecretKey;
 
@@ -1862,44 +1832,39 @@ public final class TweetNaclFast {
 	private static int crypto_onetimeauth_verify(
 			byte[] h,final int hoff,
 			byte[] m,final int moff,
-			int /*long*/ n,
+			int n,
 			byte [] k)
 	{
 		byte [] x = new byte[16];
 		crypto_onetimeauth(x,0,m,moff,n,k);
 		return crypto_verify_16(h,hoff,x,0);
 	}
-	public static int crypto_onetimeauth_verify(byte [] h, byte [] m, int /*long*/ n, byte [] k) {
+	
+	public static int crypto_onetimeauth_verify(byte [] h, byte [] m, int n, byte [] k) {
 		return crypto_onetimeauth_verify(h,0, m,0, n, k);
 	}
+	
 	public static int crypto_onetimeauth_verify(byte [] h, byte [] m, byte [] k) {
 		return crypto_onetimeauth_verify(h, m, m!=null? m.length:0, k);
 	}
 
-	public static int crypto_secretbox(byte [] c, byte [] m, int /*long*/ d, byte [] n, byte [] k)
-	{
-		int i;
+	public static int crypto_secretbox(byte [] c, byte [] m, int /*long*/ d, byte [] n, byte [] k) {
 		if (d < 32) return -1;
 		crypto_stream_xor(c,0,m,0,d,n,k);
 		crypto_onetimeauth(c,16, c,32, d-32, c);
-		///for (i = 0; i < 16; i++) c[i] = 0;
 		return 0;
 	}
 
-	public static int crypto_secretbox_open(byte []m,byte []c,int /*long*/ d,byte []n,byte []k)
-	{
-		int i;
+	public static int crypto_secretbox_open(byte []m,byte []c,int /*long*/ d,byte []n,byte [] k) {
 		byte[] x = new byte[32];
 		if (d < 32) return -1;
 		crypto_stream(x,0,32,n,k);
 		if (crypto_onetimeauth_verify(c,16, c,32, d-32, x) != 0) return -1;
 		crypto_stream_xor(m,0,c,0,d,n,k);
-		///for (i = 0; i < 32; i++) m[i] = 0;
 		return 0;
 	}
 
-	public static void set25519(long [] r, long [] a)
-	{
+	public static void set25519(long [] r, long [] a) {
 		int i;
 		for (i = 0; i < 16; i ++) r[i]=a[i];
 	}
@@ -1923,6 +1888,7 @@ public final class TweetNaclFast {
 	{
 		sel25519(p,0, q,0, b);
 	}
+	
 	private static void sel25519(
 			long[] p,final int poff,
 			long[] q,final int qoff,
