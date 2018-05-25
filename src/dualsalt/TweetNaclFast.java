@@ -1,11 +1,17 @@
 // Copyright (c) 2014 Tom Zhou<iwebpp@gmail.com>
-
+// 
+// Copyright of changes described below, ASSA ABLOY AB, 2018.
+// 
+// Changes from original made by ASSA ABLOY developers:
+// 
+// * 2018-05-25, Frans Lundberg, commented a few lines to remove dependency on the Java 8
+//       class Base64 class (Java 8). Now it builds for Java 7.
+// 
 
 package dualsalt;
 
 import java.io.UnsupportedEncodingException;
 import java.security.SecureRandom;
-import java.util.Base64;
 import java.lang.System;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -3355,33 +3361,6 @@ public final class TweetNaclFast {
     return x;
 	}
 	
-/*
-  public static byte[] randombytes(byte [] x, int len) {
-		int ret = len % 8;
-		long rnd;
-
-		for (int i = 0; i < len-ret; i += 8) {
-			rnd = jrandom.nextLong();
-
-			x[i+0] = (byte) (rnd >>>  0);
-			x[i+1] = (byte) (rnd >>>  8);
-			x[i+2] = (byte) (rnd >>> 16);
-			x[i+3] = (byte) (rnd >>> 24);
-			x[i+4] = (byte) (rnd >>> 32);
-			x[i+5] = (byte) (rnd >>> 40);
-			x[i+6] = (byte) (rnd >>> 48);
-			x[i+7] = (byte) (rnd >>> 56);
-		}
-
-		if (ret > 0) {         
-			rnd = jrandom.nextLong();
-			for (int i = len-ret; i < len; i ++)
-				x[i] = (byte) (rnd >>> 8*i);
-		}
-		return x;
-	}
-*/
-
 	public static byte[] makeBoxNonce() {
 	  return randombytes(Box.nonceLength);
 	}
@@ -3389,16 +3368,6 @@ public final class TweetNaclFast {
 	public static byte[] makeSecretBoxNonce() {
 	  return randombytes(SecretBox.nonceLength);
 	}
-	
-	public static String base64EncodeToString(byte [] b) {
-	  return Base64.getUrlEncoder().withoutPadding().encodeToString(b);
-	}
-	// byte[] Base64.getUrlEncoder().withoutPadding().encode(b);
-	
-	public static byte[] base64Decode(String s) {
-	  return Base64.getUrlDecoder().decode(s);
-	}
-	// byte[] Base64.getUrlDecoder().decode(byte[] b)
 	
   public static String hexEncodeToString( byte [] raw ) {
     String HEXES = "0123456789ABCDEF";
@@ -3418,7 +3387,4 @@ public final class TweetNaclFast {
     }
     return b;
   }
-
-	// public static boolean java.util.Arrays.equals(array1, array2);
-		
 }
