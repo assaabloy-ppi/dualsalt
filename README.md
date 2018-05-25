@@ -95,4 +95,17 @@ Disclaimer
 
 We take no responsibility for the reliability or security of this library. Use at your own risk.
     
+
     
+Code conventions
+================
+
+The original Java code conventions, originally by Sun, is used and the following conventions
+that take precedence.
+
+* Max line width: 100 (not 80).
+* Encoding: UTF-8 must be used. 
+* "\n" is used for new line.
+
+
+
