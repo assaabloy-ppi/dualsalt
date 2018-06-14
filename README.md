@@ -24,7 +24,6 @@ and how A-B together can decrypt such a message.
 
 Finally, the example show how A's and B's secret data can be rotated while preserving 
 there ability to represent the same virtual key pair.
-µ
 
     byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
     byte[] secKeyA = new byte[DualSalt.secretKeyLength];
