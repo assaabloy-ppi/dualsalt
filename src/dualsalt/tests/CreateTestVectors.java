@@ -10,7 +10,16 @@ import static java.lang.String.join;
 
 public class CreateTestVectors {
 
-    private String testPath = "src\\dualsalt\\tests\\";
+    private File clearFile(String fileName) throws Exception {
+        String testPath = "src\\dualsalt\\tests\\";
+        File file = new File(testPath + fileName);
+        if (file.exists()) {
+            if (!file.delete()) {
+                throw new Exception("Can not delete file");
+            }
+        }
+        return file;
+    }
 
     private void createDualSignTestVector() throws Exception {
         String fileName = "signDual.input";
@@ -18,11 +27,7 @@ public class CreateTestVectors {
         int messageLengthIncrease = 1;
         int numberOfTestVectors = 1024;
 
-        File file = new File(testPath + fileName);
-        if (file.exists())
-        {
-            file.delete();
-        }
+        File file = clearFile(fileName);
 
         FileWriter out = new FileWriter(file);
 
