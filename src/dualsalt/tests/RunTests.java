@@ -9,6 +9,6 @@ public class RunTests {
     // 
     public static void main(String[] args) {
         DualSaltTest.main(args);
-        DualSaltRandomTest.main(args);
+        DualSaltTestVectorTest.main(args);
     }
 }

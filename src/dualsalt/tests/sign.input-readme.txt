@@ -1,4 +1,0 @@
-The file "sign.input" was downloaded from the ed25519.cr.yp.to website, May 2018. 
-It was created by Daniel Bernstein for testing his Python implementation of the 
-ed25519 signature scheme.
-

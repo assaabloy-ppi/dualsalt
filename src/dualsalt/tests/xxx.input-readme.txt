@@ -1,0 +1,22 @@
+All test vector files (.input) are generated with CreateTestVectors.java except "sign.input".
+The file "sign.input" was downloaded from the ed25519.cr.yp.to website, May 2018.
+It was created by Daniel Bernstein for testing his Python implementation of the
+ed25519 signature scheme.
+
+All test vectors are tested in DualSaltTestVectorTest.java The format of the files follows:
+
+sign.input
+SecretKey:PublicKey:Message:Signature:\r\n
+// SecretKey = KeySeed+PublicKey
+
+signDual.input
+KeySeedA:PublicPartA:KeySeedB:PublicPartB.VirtualPublicKey:Message:Signature\r\n
+
+decrypt.input
+KeySeed:PublicKey:TempKeySeed:Nonce:Message:ChipperText\r\n
+
+decryptDual.input
+KeySeedA:PublicPartA:KeySeedB:PublicPartB:VirtualPublicKey:TempKeySeed:Nonce:Message:ChipperText\r\n
+
+keyRotate.input
+KeySeedA:PublicPartA:KeySeedB:PublicPartB:VirtualPublicKey:RotateRandom:NewSecretKeyA:NewSecretKeyB\r\n

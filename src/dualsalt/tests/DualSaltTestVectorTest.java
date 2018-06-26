@@ -8,7 +8,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Scanner;
 
-public class DualSaltRandomTest {
+public class DualSaltTestVectorTest {
 
     private static void testEddsaTestVector() throws Exception {
         System.out.println("\nTest EdDSA test vector");
@@ -228,7 +228,7 @@ public class DualSaltRandomTest {
                 byte[] dutKeySeedB = TweetNaclFast.hexDecode(items[2]);
                 byte[] dutPublicPartB = TweetNaclFast.hexDecode(items[3]);
                 byte[] dutVirtualPublicKey = TweetNaclFast.hexDecode(items[4]);
-                byte[] rotateRandom = TweetNaclFast.hexDecode(items[5]);
+                byte[] dutRotateRandom = TweetNaclFast.hexDecode(items[5]);
                 byte[] dutNewSecretKeyA = TweetNaclFast.hexDecode(items[6]);
                 byte[] dutNewSecretKeyB  = TweetNaclFast.hexDecode(items[7]);
 
@@ -254,8 +254,8 @@ public class DualSaltRandomTest {
 
                 byte[] newPublicPartA = new byte[DualSalt.publicKeyLength];
                 byte[] newPublicPartB = new byte[DualSalt.publicKeyLength];
-                DualSalt.rotateKey(newPublicPartA, secretKeyA, rotateRandom, true);
-                DualSalt.rotateKey(newPublicPartB, secretKeyB, rotateRandom, false);
+                DualSalt.rotateKey(newPublicPartA, secretKeyA, dutRotateRandom, true);
+                DualSalt.rotateKey(newPublicPartB, secretKeyB, dutRotateRandom, false);
 
                 byte[] newVirtualPublicKey = DualSalt.addPublicKeys(newPublicPartA, newPublicPartB);
                 if (!Arrays.equals(dutVirtualPublicKey, newVirtualPublicKey)) {
@@ -291,7 +291,7 @@ public class DualSaltRandomTest {
     }
 
     public static void main(String[] args) {
-        DualSaltRandomTest t = new DualSaltRandomTest();
+        DualSaltTestVectorTest t = new DualSaltTestVectorTest();
         t.run();
     }
 }
