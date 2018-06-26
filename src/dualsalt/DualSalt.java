@@ -74,7 +74,7 @@ public class DualSalt {
         return publicKey;
     }
 
-    /**
+    /*-
      * This function is used to "rotate" the two secret keys used to build up a
      * dual key (virtual key pair). The two key pairs kan be changed in such a
      * way that the addition of there two public keys still adds up to the same
@@ -83,13 +83,16 @@ public class DualSalt {
      * first set to false. Reuse the same data for parameter random both time.
      * Parameter random is recommended to be sent between devices in a encrypted
      * channel with forward secrecy such as saltChannel
-     * 
+     *
+     * *****************************************
      * createKeyPair(A, a, r1)
      * createKeyPair(B, b, r2)
      * C1 = addPublicKeys(A, B) 
-     * rotateKey(A, a, r3, true) <- Change A and a rotateKey(B, b, r3, false) <- Change B and b C1
-     * addPublicKeys(A, B) 
-     * 
+     * rotateKey(A, a, r3, true) <- Change A and a
+     * rotateKey(B, b, r3, false) <- Change B and b
+     * C1 = addPublicKeys(A, B)
+     * *****************************************
+     *
      * @param publicKey
      *            (out) The new public key after rotation
      * @param secretKey
@@ -327,7 +330,7 @@ public class DualSalt {
         return TweetNaclFast.crypto_sign_open(tmp, 0, signature, 0, signature.length, publicKey) == 0;
     }
 
-    /**
+    /*-
      * The first of 3 functions that together creates one valid EdDSA signature
      * from two separate key pairs. Done is such a way that that two devices
      * with separate key pairs can sign without there key pairs ever existing in
@@ -337,8 +340,12 @@ public class DualSalt {
      * secrecy such as saltChannel. 
      * 
      * *****************************************
-     * Device 1 Device 2 signCreateDual1() | |-----------m1--------> | |
-     * signCreateDual2() | <---------m2----------| signCreateDual3() |
+	 *     Device 1                Device 2
+	 *  signCreateDual1()             |
+	 *        |-----------m1--------> |
+	 *        |                 signCreateDual2()
+	 *        | <---------m2----------|
+	 *  signCreateDual3()             |
      * *****************************************
      * 
      * @param message
@@ -633,12 +640,16 @@ public class DualSalt {
         return decryptWithSharedGroupEl(cipherText, nonce, sharedGroupEl);
     }
 
-    /**
+    /*-
      * The first of 2 functions that together can decrypt a cipher message from
      * encrypt() encrypted to an virtual key pair. d1 is recommended to be sent
      * in a encrypted channel with forward secrecy such as saltChannel
-     * ***************************************** Device 1 Device 2
-     * decryptDual1() | |-----------d1--------> | | decryptDual2()
+     *
+     * *****************************************
+     *    Device 1                Device 2
+     *  decryptDual1()               |
+     *       |-----------d1--------> |
+     *       |                  decryptDual2()
      * *****************************************
      * 
      * @param cipherMessage
