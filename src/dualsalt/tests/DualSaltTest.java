@@ -3,10 +3,7 @@ package dualsalt.tests;
 import dualsalt.DualSalt;
 import dualsalt.TweetNaclFast;
 
-import java.io.File;
-import java.net.URL;
 import java.util.Arrays;
-import java.util.Scanner;
 
 public class DualSaltTest {
 
@@ -58,7 +55,7 @@ public class DualSaltTest {
         }
     }
 
-    static void testRotateKeys(byte[] rand1, byte[] rand2, byte[] rand3) throws Exception {
+    private static void testRotateKeys(byte[] rand1, byte[] rand2, byte[] rand3) throws Exception {
         System.out.println("\nTest rotate keys");
 
         byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
@@ -190,7 +187,7 @@ public class DualSaltTest {
         }
     }
 
-    static void testDualSign(byte[] rand1, byte[] rand2, String testString) throws Exception {
+    private static void testDualSign(byte[] rand1, byte[] rand2, String testString) throws Exception {
         System.out.println("\nTest dual sign");
 
         byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
@@ -271,7 +268,7 @@ public class DualSaltTest {
         Log.d(TAG, "Signature validation fail when it shall");
     }
 
-    static void testSingleDecrypt(byte[] rand1, byte[] rand2, byte[] rand3, String testString)
+    private static void testSingleDecrypt(byte[] rand1, byte[] rand2, byte[] rand3, String testString)
             throws Exception {
         System.out.println("\nTest single decrypt");
 
@@ -342,7 +339,7 @@ public class DualSaltTest {
         Log.d(TAG, "Message decryption validation fail when it shall");
     }
 
-    static void testDualDecrypt(byte[] rand1, byte[] rand2, byte[] rand3, byte[] rand4,
+    private static void testDualDecrypt(byte[] rand1, byte[] rand2, byte[] rand3, byte[] rand4,
             String testString) throws Exception {
         System.out.println("\nTest dual decrypt");
 
@@ -443,43 +440,6 @@ public class DualSaltTest {
         Log.d(TAG, "Message decryption validation fail when it shall");
     }
 
-    private static void testEddsaTestVector() throws Exception {
-        System.out.println("\nTest EdDSA test vector");
-
-        String fileName = "sign.input";
-        URL url = DualSaltTest.class.getResource(fileName);
-        File file = new File(url.getPath());
-
-        try (Scanner sc = new Scanner(file)) {
-            while (sc.hasNextLine()) {
-                String line = sc.nextLine();
-                String[] items = line.split(":");
-                byte[] dutSecretKey = TweetNaclFast.hexDecode(items[0]);
-                byte[] dutPublicKey = TweetNaclFast.hexDecode(items[1]);
-                byte[] dutMessage = TweetNaclFast.hexDecode(items[2]);
-                byte[] dutSignature = TweetNaclFast.hexDecode(items[3]);
-
-                byte[] secretKeySeed = Arrays.copyOfRange(dutSecretKey, 0, DualSalt.seedLength);
-                byte[] secretKey = new byte[DualSalt.secretKeyLength];
-                byte[] publicKey = new byte[DualSalt.publicKeyLength];
-                DualSalt.createKeyPair(publicKey, secretKey, secretKeySeed);
-                if (!Arrays.equals(dutPublicKey, publicKey)) {
-                    throw new Exception("Public key do not match");
-                }
-
-                byte[] signature = DualSalt.signCreate(dutMessage, publicKey, secretKey);
-                if (!DualSalt.signVerify(signature, publicKey)) {
-                    throw new Exception("Signature do not verify correctly");
-                }
-                if (!Arrays.equals(dutSignature, signature)) {
-                    throw new Exception("Signature do not match");
-                }
-            }
-        }
-
-        Log.d(TAG, "Test succeeded");
-    }
-
     private void run() {
         try {
             byte[] rand1 = TweetNaclFast
@@ -525,8 +485,6 @@ public class DualSaltTest {
                     "The best decryption in the all the worlds, You know like all all");
             testDualDecrypt(rand2, rand3, nonce, rand1,
                     "There could be only one ultimate decryption and this is it. Stop arguing");
-
-            testEddsaTestVector();
 
             testNegativeSingleSign(rand1, "The best signature in the world");
             testNegativeSingleSign(rand2,
