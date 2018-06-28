@@ -21,12 +21,13 @@ public class DualSalt {
     public static final int nonceLength = TweetNaclFast.Box.nonceLength;
     public static final int seedLength = TweetNaclFast.Signature.seedLength;
     private static final int signatureLength = TweetNaclFast.Signature.signatureLength;
-    private static final int cipherMessageHeaderLength = nonceLength + publicKeyLength;
     private static final int m1HeaderLength = TweetNaclFast.ScalarMult.groupElementLength
             + publicKeyLength;
     private static final int m2Length = signatureLength;
     private static final int d1Length = TweetNaclFast.ScalarMult.groupElementLength;
 
+    private static final byte[] nonce = TweetNaclFast
+            .hexDecode("000000000000000000000000000000000000000000000000");
     /**
      * Create key pair. The secret key is not compatible with Tweetnacl but the
      * public key is compatible with tweetnacl signing.
@@ -576,19 +577,15 @@ public class DualSalt {
      * 
      * @param message
      *            The message to be encrypted
-     * @param nonce
-     *            The nonce use
      * @param toPublicKey
      *            The public key to encrypt to
      * @param random
      *            Random
      * @return The cipher message
      */
-    public static byte[] encrypt(byte[] message, byte[] nonce, byte[] toPublicKey, byte[] random) {
+    public static byte[] encrypt(byte[] message, byte[] toPublicKey, byte[] random) {
         if (message == null)
             throw new IllegalArgumentException("The message is null");
-        if (nonce.length != nonceLength)
-            throw new IllegalArgumentException("Nonce has the wrong length");
         if (toPublicKey.length != publicKeyLength)
             throw new IllegalArgumentException("Public key has the wrong length");
         if (random.length != seedLength)
@@ -604,12 +601,11 @@ public class DualSalt {
         TweetNaclFast.scalarmult(p, q, tempSecretKey, 0);
         TweetNaclFast.pack(sharedGroupEl, p);
 
-        byte[] cipherText = encryptWithSharedGroupEl(message, nonce, sharedGroupEl);
+        byte[] cipherText = encryptWithSharedGroupEl(message, sharedGroupEl);
 
-        byte[] cipherMessage = new byte[cipherMessageHeaderLength + cipherText.length];
-        System.arraycopy(nonce, 0, cipherMessage, 0, nonceLength);
-        System.arraycopy(tempPublicKey, 0, cipherMessage, nonceLength, publicKeyLength);
-        System.arraycopy(cipherText, 0, cipherMessage, cipherMessageHeaderLength, cipherText.length);
+        byte[] cipherMessage = new byte[publicKeyLength + cipherText.length];
+        System.arraycopy(tempPublicKey, 0, cipherMessage, 0, publicKeyLength);
+        System.arraycopy(cipherText, 0, cipherMessage, publicKeyLength, cipherText.length);
         return cipherMessage;
     }
 
@@ -618,26 +614,21 @@ public class DualSalt {
      * 
      * @param cipherMessage
      *            The cipher message
-     * @param nonce
-     *            (out) The nonce that was use in hte encryption
      * @param secretKey
      *            The secret key encrypted to
      * @return The decrypted message
      */
-    public static byte[] decrypt(byte[] cipherMessage, byte[] nonce, byte[] secretKey) {
-        if (cipherMessage.length <= cipherMessageHeaderLength)
+    public static byte[] decrypt(byte[] cipherMessage, byte[] secretKey) {
+        if (cipherMessage.length <= publicKeyLength)
             throw new IllegalArgumentException("The cipher message is to short");
-        if (nonce.length != nonceLength)
-            throw new IllegalArgumentException("Nonce has the wrong length");
         if (secretKey.length != secretKeyLength)
             throw new IllegalArgumentException("Secret key has the wrong length");
 
-        byte[] cipherText = Arrays.copyOfRange(cipherMessage, cipherMessageHeaderLength,
+        byte[] cipherText = Arrays.copyOfRange(cipherMessage, publicKeyLength,
                 cipherMessage.length);
-        System.arraycopy(cipherMessage, 0, nonce, 0, nonceLength);
 
         byte[] sharedGroupEl = decryptDual1(cipherMessage, secretKey);
-        return decryptWithSharedGroupEl(cipherText, nonce, sharedGroupEl);
+        return decryptWithSharedGroupEl(cipherText, sharedGroupEl);
     }
 
     /*-
@@ -659,14 +650,14 @@ public class DualSalt {
      * @return d1 a message used in decryptDual2() to finish the decryption
      */
     public static byte[] decryptDual1(byte[] cipherMessage, byte[] secretKeyA) {
-        if (cipherMessage.length <= cipherMessageHeaderLength)
+        if (cipherMessage.length <= publicKeyLength)
             throw new IllegalArgumentException("The cipher message is to short");
         if (secretKeyA.length != secretKeyLength)
             throw new IllegalArgumentException("Secret key has the wrong length");
 
         byte[] d1 = new byte[d1Length];
-        byte[] tempPublicKey = Arrays.copyOfRange(cipherMessage, nonceLength,
-                cipherMessageHeaderLength);
+        byte[] tempPublicKey = Arrays.copyOfRange(cipherMessage, 0,
+                publicKeyLength);
 
         long[][] p = createUnpackedGroupEl();
         long[][] q = unpack(tempPublicKey);
@@ -682,27 +673,21 @@ public class DualSalt {
      *            d1 a message from decryptDual1()
      * @param cipherMessage
      *            The cipher message to be decrypted
-     * @param nonce
-     *            (out) The nonce that was use in hte encryption
      * @param secretKeyB
      *            The second secret key to be used in hte decryption
      * @return The decrypted message
      */
-    public static byte[] decryptDual2(byte[] d1, byte[] cipherMessage, byte[] nonce,
-            byte[] secretKeyB) {
+    public static byte[] decryptDual2(byte[] d1, byte[] cipherMessage, byte[] secretKeyB) {
         if (d1.length != d1Length)
             throw new IllegalArgumentException("D1 has the wrong length");
-        if (cipherMessage.length <= cipherMessageHeaderLength)
+        if (cipherMessage.length <= publicKeyLength)
             throw new IllegalArgumentException("The cipher message is to short");
-        if (nonce.length != nonceLength)
-            throw new IllegalArgumentException("Nonce has the wrong length");
         if (secretKeyB.length != secretKeyLength)
             throw new IllegalArgumentException("Secret key has the wrong length");
 
-        System.arraycopy(cipherMessage, 0, nonce, 0, nonceLength);
-        byte[] tempPublicKey = Arrays.copyOfRange(cipherMessage, nonceLength,
-                cipherMessageHeaderLength);
-        byte[] cipherText = Arrays.copyOfRange(cipherMessage, cipherMessageHeaderLength,
+        byte[] tempPublicKey = Arrays.copyOfRange(cipherMessage, 0,
+                publicKeyLength);
+        byte[] cipherText = Arrays.copyOfRange(cipherMessage, publicKeyLength,
                 cipherMessage.length);
         byte[] sharedGroupEl = new byte[TweetNaclFast.ScalarMult.groupElementLength];
 
@@ -714,7 +699,7 @@ public class DualSalt {
         TweetNaclFast.add(p, q);
         TweetNaclFast.pack(sharedGroupEl, p);
 
-        return decryptWithSharedGroupEl(cipherText, nonce, sharedGroupEl);
+        return decryptWithSharedGroupEl(cipherText, sharedGroupEl);
     }
 
     /**
@@ -724,14 +709,11 @@ public class DualSalt {
      * 
      * @param message
      *            Message to be encrypted
-     * @param nonce
-     *            The nonce
      * @param sharedGroupEl
      *            The shared group element used as key
      * @return The cipher text
      */
-    private static byte[] encryptWithSharedGroupEl(byte[] message, byte[] nonce,
-            byte[] sharedGroupEl) {
+    private static byte[] encryptWithSharedGroupEl(byte[] message, byte[] sharedGroupEl) {
         byte[] sharedKey = new byte[TweetNaclFast.Box.sharedKeyLength];
         TweetNaclFast.crypto_core_hsalsa20(sharedKey, TweetNaclFast._0, sharedGroupEl,
                 TweetNaclFast.sigma);
@@ -755,14 +737,12 @@ public class DualSalt {
      * 
      * @param cipherText
      *            Data to be decrypted
-     * @param nonce
-     *            The nonce
      * @param sharedGroupEl
      *            The shared group element used as key
      * @return The decrypted message
      */
-    private static byte[] decryptWithSharedGroupEl(byte[] cipherText, byte[] nonce,
-            byte[] sharedGroupEl) {
+    private static byte[] decryptWithSharedGroupEl(byte[] cipherText, byte[] sharedGroupEl) {
+
         byte[] sharedKey = new byte[TweetNaclFast.Box.sharedKeyLength];
         TweetNaclFast.crypto_core_hsalsa20(sharedKey, TweetNaclFast._0, sharedGroupEl,
                 TweetNaclFast.sigma);

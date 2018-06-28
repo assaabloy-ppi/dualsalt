@@ -117,9 +117,8 @@ public class DualSaltTestVectorTest {
                 byte[] dutKeySeed = TweetNaclFast.hexDecode(items[0]);
                 byte[] dutPublicKey = TweetNaclFast.hexDecode(items[1]);
                 byte[] dutTempKeySeed = TweetNaclFast.hexDecode(items[2]);
-                byte[] dutNonce = TweetNaclFast.hexDecode(items[3]);
-                byte[] dutMessage = TweetNaclFast.hexDecode(items[4]);
-                byte[] dutChipperText = TweetNaclFast.hexDecode(items[5]);
+                byte[] dutMessage = TweetNaclFast.hexDecode(items[3]);
+                byte[] dutChipperText = TweetNaclFast.hexDecode(items[4]);
 
                 byte[] secretKey = new byte[DualSalt.secretKeyLength];
                 byte[] publicKey = new byte[DualSalt.publicKeyLength];
@@ -129,8 +128,8 @@ public class DualSaltTestVectorTest {
                 }
 
                 byte[] nonce = new byte[DualSalt.nonceLength];
-                byte[] chipperText = DualSalt.encrypt(dutMessage, dutNonce, publicKey, dutTempKeySeed);
-                byte[] message = DualSalt.decrypt(chipperText, nonce, secretKey);
+                byte[] chipperText = DualSalt.encrypt(dutMessage, publicKey, dutTempKeySeed);
+                byte[] message = DualSalt.decrypt(chipperText, secretKey);
 
                 if (!Arrays.equals(chipperText, dutChipperText)) {
                     throw new Exception("Did not encrypt correctly");
@@ -138,10 +137,6 @@ public class DualSaltTestVectorTest {
 
                 if (!Arrays.equals(message, dutMessage)) {
                     throw new Exception("Did not decrypt correctly");
-                }
-
-                if (!Arrays.equals(nonce, dutNonce)) {
-                    throw new Exception("Nonce do not match");
                 }
             }
         }
@@ -166,9 +161,8 @@ public class DualSaltTestVectorTest {
                 byte[] dutPublicPartB = TweetNaclFast.hexDecode(items[3]);
                 byte[] dutVirtualPublicKey = TweetNaclFast.hexDecode(items[4]);
                 byte[] dutTempKeySeed = TweetNaclFast.hexDecode(items[5]);
-                byte[] dutNonce = TweetNaclFast.hexDecode(items[6]);
-                byte[] dutMessage = TweetNaclFast.hexDecode(items[7]);
-                byte[] dutChipperText = TweetNaclFast.hexDecode(items[8]);
+                byte[] dutMessage = TweetNaclFast.hexDecode(items[6]);
+                byte[] dutChipperText = TweetNaclFast.hexDecode(items[7]);
 
                 byte[] secretKeyA = new byte[DualSalt.secretKeyLength];
                 byte[] publicKeyA = new byte[DualSalt.publicKeyLength];
@@ -191,9 +185,9 @@ public class DualSaltTestVectorTest {
                 }
 
                 byte[] nonce = new byte[DualSalt.nonceLength];
-                byte[] chipperText = DualSalt.encrypt(dutMessage, dutNonce, virtualPublicKey, dutTempKeySeed);
+                byte[] chipperText = DualSalt.encrypt(dutMessage, virtualPublicKey, dutTempKeySeed);
                 byte[] d1 = DualSalt.decryptDual1(chipperText, secretKeyA);
-                byte[] message = DualSalt.decryptDual2(d1, chipperText, nonce, secretKeyB);
+                byte[] message = DualSalt.decryptDual2(d1, chipperText, secretKeyB);
 
                 if (!Arrays.equals(chipperText, dutChipperText)) {
                     throw new Exception("Did not encrypt correctly");
@@ -201,10 +195,6 @@ public class DualSaltTestVectorTest {
 
                 if (!Arrays.equals(message, dutMessage)) {
                     throw new Exception("Did not decrypt correctly");
-                }
-
-                if (!Arrays.equals(nonce, dutNonce)) {
-                    throw new Exception("Nonce do not match");
                 }
             }
         }

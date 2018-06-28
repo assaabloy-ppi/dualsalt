@@ -81,7 +81,6 @@ public class DualSaltSpeedTest {
         byte[] rand1 = TweetNaclFast.hexDecode("ac49000da11249ea3510941703a7e21a39837c4d2d5300daebbd532df20f8135");
         byte[] rand2 = TweetNaclFast.hexDecode("e56f0eef73ade8f79bc1d16a99cbc5e4995afd8c14adb49410ecd957aecc8d02");
         byte[] rand3 = TweetNaclFast.hexDecode("E14A55160C418542BFB0B4DCEB4CAA489A09AF8B9F61104F27E621BCB5002388");
-        byte[] nonce = TweetNaclFast.hexDecode("775AC10266C022122581BFFC502F30415B05826E17BF3BE9");
 
         byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
         byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
@@ -93,24 +92,23 @@ public class DualSaltSpeedTest {
         byte[] virtualPublicKey = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
         String testString = "Fy fabian vad jag vill ha en ny dator";
         byte[] message = testString.getBytes();
-        byte[] nonceOut = new byte[DualSalt.nonceLength];
-        byte[] chipperTextSingle = DualSalt.encrypt(message, nonce, pubKeyA, rand3);
-        byte[] chipperTextDual = DualSalt.encrypt(message, nonce, virtualPublicKey, rand3);
+        byte[] chipperTextSingle = DualSalt.encrypt(message, pubKeyA, rand3);
+        byte[] chipperTextDual = DualSalt.encrypt(message, virtualPublicKey, rand3);
         int iterations = 1000;
 
         long encrypt = measureMeanMicroS(iterations, () ->
-            DualSalt.encrypt(message, nonce, pubKeyA, rand3)
+            DualSalt.encrypt(message, pubKeyA, rand3)
         );
         Log.d(TAG, "DualSalt.encrypt execution time: " + encrypt + "µs");
 
         long decryptSingle = measureMeanMicroS(iterations, () ->
-                DualSalt.decrypt(chipperTextSingle, nonceOut, secKeyA)
+                DualSalt.decrypt(chipperTextSingle, secKeyA)
         );
         Log.d(TAG, "DualSalt.decrypt execution time: " + decryptSingle + "µs");
 
         long decryptDual = measureMeanMicroS(iterations, () -> {
             byte[] d1 = DualSalt.decryptDual1(chipperTextDual, secKeyA);
-            DualSalt.decryptDual2(d1, chipperTextDual, nonceOut, secKeyB);
+            DualSalt.decryptDual2(d1, chipperTextDual, secKeyB);
         });
         Log.d(TAG, "DualSalt.decryptDual execution time: " + decryptDual + "µs " + decryptDual*100/decryptSingle + "%");
     }

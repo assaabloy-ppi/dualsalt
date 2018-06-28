@@ -97,19 +97,14 @@ public class CreateTestVectors {
             byte[] tempKeySeed = new byte[DualSalt.seedLength];
             TweetNaclFast.randombytes(tempKeySeed, DualSalt.seedLength);
 
-            byte [] nonce =  new byte[DualSalt.nonceLength];
-            TweetNaclFast.randombytes(nonce, DualSalt.nonceLength);
-            byte [] nonceOut =  new byte[DualSalt.nonceLength];
-
             byte [] message =  new byte[messageLength];
             TweetNaclFast.randombytes(message, messageLength);
 
-            byte[] chipperText = DualSalt.encrypt(message, nonce, publicKey, tempKeySeed);
-            byte[] messageOut = DualSalt.decrypt(chipperText, nonceOut, secretKey);
+            byte[] chipperText = DualSalt.encrypt(message, publicKey, tempKeySeed);
+            byte[] messageOut = DualSalt.decrypt(chipperText, secretKey);
 
 
-            if (!Arrays.equals(message, messageOut) ||
-                !Arrays.equals(nonce, nonceOut)) {
+            if (!Arrays.equals(message, messageOut)) {
                 throw new Exception();
             }
 
@@ -117,7 +112,6 @@ public class CreateTestVectors {
                     TweetNaclFast.hexEncodeToString(keySeed),
                     TweetNaclFast.hexEncodeToString(publicKey),
                     TweetNaclFast.hexEncodeToString(tempKeySeed),
-                    TweetNaclFast.hexEncodeToString(nonce),
                     TweetNaclFast.hexEncodeToString(message),
                     TweetNaclFast.hexEncodeToString(chipperText)
                             + "\r\n"
@@ -158,19 +152,14 @@ public class CreateTestVectors {
             byte[] tempKeySeed = new byte[DualSalt.seedLength];
             TweetNaclFast.randombytes(tempKeySeed, DualSalt.seedLength);
 
-            byte [] nonce =  new byte[DualSalt.nonceLength];
-            TweetNaclFast.randombytes(nonce, DualSalt.nonceLength);
-            byte [] nonceOut =  new byte[DualSalt.nonceLength];
-
             byte [] message =  new byte[messageLength];
             TweetNaclFast.randombytes(message, messageLength);
 
-            byte[] chipperText = DualSalt.encrypt(message, nonce, virtualPublicKey, tempKeySeed);
+            byte[] chipperText = DualSalt.encrypt(message, virtualPublicKey, tempKeySeed);
             byte[] d1 = DualSalt.decryptDual1(chipperText, secretPartA);
-            byte[] messageOut = DualSalt.decryptDual2(d1, chipperText, nonceOut, secretPartB);
+            byte[] messageOut = DualSalt.decryptDual2(d1, chipperText, secretPartB);
 
-            if (!Arrays.equals(message, messageOut) ||
-                    !Arrays.equals(nonce, nonceOut)) {
+            if (!Arrays.equals(message, messageOut)) {
                 throw new Exception();
             }
 
@@ -181,7 +170,6 @@ public class CreateTestVectors {
                     TweetNaclFast.hexEncodeToString(publicPartB),
                     TweetNaclFast.hexEncodeToString(virtualPublicKey),
                     TweetNaclFast.hexEncodeToString(tempKeySeed),
-                    TweetNaclFast.hexEncodeToString(nonce),
                     TweetNaclFast.hexEncodeToString(message),
                     TweetNaclFast.hexEncodeToString(chipperText)
                             + "\r\n"
