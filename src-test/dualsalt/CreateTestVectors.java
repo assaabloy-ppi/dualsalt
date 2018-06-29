@@ -1,7 +1,4 @@
-package dualsalt.tests;
-
-import dualsalt.DualSalt;
-import dualsalt.TweetNaclFast;
+package dualsalt;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -12,7 +9,7 @@ import static java.lang.String.join;
 public class CreateTestVectors {
 
     private File clearFile(String fileName) throws Exception {
-        String testPath = "src\\dualsalt\\tests\\";
+        String testPath = "src-test\\dualsalt\\";
         File file = new File(testPath + fileName);
         if (file.exists()) {
             if (!file.delete()) {

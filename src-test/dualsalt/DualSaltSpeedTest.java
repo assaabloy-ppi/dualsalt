@@ -1,16 +1,8 @@
-package dualsalt.tests;
+package dualsalt;
 
-import dualsalt.DualSalt;
-import dualsalt.TweetNaclFast;
+import org.junit.Test;
 
 public class DualSaltSpeedTest {
-
-    private static final String TAG = "DualSaltSpeedTest";
-
-    public static void main(String[] args) {
-        DualSaltSpeedTest t = new DualSaltSpeedTest();
-        t.start();
-    }
 
     private long measureMeanMicroS(int iterations, Runnable dut){
         long totalTime = 0;
@@ -22,7 +14,8 @@ public class DualSaltSpeedTest {
         return totalTime/(iterations*1000);
     }
 
-    private void testSignSpeed() {
+    @Test
+    public void testSignSpeed() {
         System.out.println("\nTest sign speed");
 
         byte[] rand1 = TweetNaclFast.hexDecode("ac49000da11249ea3510941703a7e21a39837c4d2d5300daebbd532df20f8135");
@@ -50,32 +43,33 @@ public class DualSaltSpeedTest {
         long signRef = measureMeanMicroS(iterations, () ->
               TweetNaclFast.crypto_sign(sm, -1, message, 0, message.length, tweetSecretKeyA)
         );
-        Log.d(TAG, "TweetNaclFast.crypto_sign execution time: " + signRef + "µs");
+        System.out.println("TweetNaclFast.crypto_sign execution time: " + signRef + "µs");
 
         long signSingle = measureMeanMicroS(iterations, () ->
             DualSalt.signCreate(message, pubKeyA, secKeyA)
         );
-        Log.d(TAG, "DualSalt.signCreate execution time: " + signSingle + "µs " + signSingle*100/signRef + "%");
+        System.out.println( "DualSalt.signCreate execution time: " + signSingle + "µs " + signSingle*100/signRef + "%");
 
         long signDual = measureMeanMicroS(iterations, () -> {
             byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, secKeyA);
             byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB);
             DualSalt.signCreateDual3(m1, m2, pubKeyA, secKeyA);
         });
-        Log.d(TAG, "DualSalt.signCreateDual execution time: " + signDual + "µs " + signDual*100/signRef + "%");
+        System.out.println("DualSalt.signCreateDual execution time: " + signDual + "µs " + signDual*100/signRef + "%");
 
         long verifyRef = measureMeanMicroS(iterations, () ->
                 TweetNaclFast.crypto_sign_open(tmp, 0, signature, 0, signature.length, pubKeyA)
         );
-        Log.d(TAG, "TweetNaclFast.crypto_sign_open execution time: " + verifyRef + "µs");
+        System.out.println("TweetNaclFast.crypto_sign_open execution time: " + verifyRef + "µs");
 
         long verify = measureMeanMicroS(iterations, () ->
                 DualSalt.signVerify(signature, pubKeyA)
         );
-        Log.d(TAG, "DualSalt.signVerify execution time: " + verify + "µs " + verify*100/verifyRef + "%");
+        System.out.println("DualSalt.signVerify execution time: " + verify + "µs " + verify*100/verifyRef + "%");
     }
 
-    private void testDecryptSpeed() {
+    @Test
+    public void testDecryptSpeed() {
         System.out.println("\nTest decrypt speed");
 
         byte[] rand1 = TweetNaclFast.hexDecode("ac49000da11249ea3510941703a7e21a39837c4d2d5300daebbd532df20f8135");
@@ -99,34 +93,17 @@ public class DualSaltSpeedTest {
         long encrypt = measureMeanMicroS(iterations, () ->
             DualSalt.encrypt(message, pubKeyA, rand3)
         );
-        Log.d(TAG, "DualSalt.encrypt execution time: " + encrypt + "µs");
+        System.out.println("DualSalt.encrypt execution time: " + encrypt + "µs");
 
         long decryptSingle = measureMeanMicroS(iterations, () ->
                 DualSalt.decrypt(chipperTextSingle, secKeyA)
         );
-        Log.d(TAG, "DualSalt.decrypt execution time: " + decryptSingle + "µs");
+        System.out.println("DualSalt.decrypt execution time: " + decryptSingle + "µs");
 
         long decryptDual = measureMeanMicroS(iterations, () -> {
             byte[] d1 = DualSalt.decryptDual1(chipperTextDual, secKeyA);
             DualSalt.decryptDual2(d1, chipperTextDual, secKeyB);
         });
-        Log.d(TAG, "DualSalt.decryptDual execution time: " + decryptDual + "µs " + decryptDual*100/decryptSingle + "%");
-    }
-
-    private void start() {
-        (new Thread(() -> {
-            Log.d(TAG, "start test");
-
-            try {
-                testSignSpeed();
-                testDecryptSpeed();
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            Log.d(TAG, "test done");
-
-        })).start();
+        System.out.println("DualSalt.decryptDual execution time: " + decryptDual + "µs " + decryptDual*100/decryptSingle + "%");
     }
 }

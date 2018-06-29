@@ -1,16 +1,18 @@
-package dualsalt.tests;
+package dualsalt;
 
-import dualsalt.DualSalt;
-import dualsalt.TweetNaclFast;
+import org.junit.Test;
 
 import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Scanner;
 
+import static org.junit.Assert.*;
+
 public class DualSaltTestVectorTest {
 
-    private static void testEddsaTestVector() throws Exception {
+    @Test
+    public void testEddsaTestVector() throws Exception {
         System.out.println("\nTest EdDSA test vector");
 
         String fileName = "sign.input";
@@ -30,24 +32,19 @@ public class DualSaltTestVectorTest {
                 byte[] secretKey = new byte[DualSalt.secretKeyLength];
                 byte[] publicKey = new byte[DualSalt.publicKeyLength];
                 DualSalt.createKeyPair(publicKey, secretKey, secretKeySeed);
-                if (!Arrays.equals(dutPublicKey, publicKey)) {
-                    throw new Exception("Public key do not match");
-                }
+                assertArrayEquals("Public key do not match", dutPublicKey, publicKey);
 
                 byte[] signature = DualSalt.signCreate(dutMessage, publicKey, secretKey);
-                if (!DualSalt.signVerify(signature, publicKey)) {
-                    throw new Exception("Signature do not verify correctly");
-                }
-                if (!Arrays.equals(dutSignature, signature)) {
-                    throw new Exception("Signature do not match");
-                }
+                assertTrue("Signature do not verify correctly", DualSalt.signVerify(signature, publicKey));
+                assertArrayEquals("Signature do not match", dutSignature, signature);
             }
         }
 
         System.out.println("Test succeeded");
     }
 
-    private static void testSignDualTestVector() throws Exception {
+    @Test
+    public void testSignDualTestVector() throws Exception {
         System.out.println("\nTest sing dual test vector");
 
         String fileName = "signDual.input";
@@ -72,38 +69,28 @@ public class DualSaltTestVectorTest {
                 byte[] publicKeyB = new byte[DualSalt.publicKeyLength];
 
                 DualSalt.createKeyPair(publicKeyA, secretKeyA, dutKeySeedA);
-                if (!Arrays.equals(dutPublicPartA, publicKeyA)) {
-                    throw new Exception("Public key A do not match");
-                }
+                assertArrayEquals("Public key A do not match", dutPublicPartA, publicKeyA);
 
                 DualSalt.createKeyPair(publicKeyB, secretKeyB, dutKeySeedB);
-                if (!Arrays.equals(dutPublicPartB, publicKeyB)) {
-                    throw new Exception("Public key B do not match");
-                }
+                assertArrayEquals("Public key B do not match", dutPublicPartB, publicKeyB);
 
                 byte[] virtualPublicKey = DualSalt.addPublicKeys(publicKeyA, publicKeyB);
-                if (!Arrays.equals(dutVirtualPublicKey, virtualPublicKey)) {
-                    throw new Exception("Virtual public key do not match");
-                }
+                assertArrayEquals("Virtual public key do not match", dutVirtualPublicKey, virtualPublicKey);
 
                 byte[] m1 = DualSalt.signCreateDual1(dutMessage, virtualPublicKey, secretKeyA);
                 byte[] m2 = DualSalt.signCreateDual2(m1, secretKeyB);
                 byte[] signature = DualSalt.signCreateDual3(m1, m2, publicKeyA, secretKeyA);
 
-                if (!DualSalt.signVerify(signature, virtualPublicKey)) {
-                    throw new Exception("Signature do not verify correctly");
-                }
-
-                if (!Arrays.equals(signature, dutSignature)) {
-                    throw new Exception("Signature do not match test signature");
-                }
+                assertTrue("Signature do not verify correctly", DualSalt.signVerify(signature, virtualPublicKey));
+                assertArrayEquals("Signature do not match", dutSignature, signature);
             }
         }
 
         System.out.println("Test succeeded");
     }
 
-    private static void testDecryptTestVector() throws Exception {
+    @Test
+    public void testDecryptTestVector() throws Exception {
         System.out.println("\nTest decrypt test vector");
 
         String fileName = "decrypt.input";
@@ -123,28 +110,22 @@ public class DualSaltTestVectorTest {
                 byte[] secretKey = new byte[DualSalt.secretKeyLength];
                 byte[] publicKey = new byte[DualSalt.publicKeyLength];
                 DualSalt.createKeyPair(publicKey, secretKey, dutKeySeed);
-                if (!Arrays.equals(dutPublicKey, publicKey)) {
-                    throw new Exception("Public key do not match");
-                }
+                assertArrayEquals("Public key do not match", dutPublicKey, publicKey);
 
-                byte[] nonce = new byte[DualSalt.nonceLength];
                 byte[] chipperText = DualSalt.encrypt(dutMessage, publicKey, dutTempKeySeed);
                 byte[] message = DualSalt.decrypt(chipperText, secretKey);
 
-                if (!Arrays.equals(chipperText, dutChipperText)) {
-                    throw new Exception("Did not encrypt correctly");
-                }
+                assertArrayEquals("Did not encrypt correctly", chipperText, dutChipperText);
 
-                if (!Arrays.equals(message, dutMessage)) {
-                    throw new Exception("Did not decrypt correctly");
-                }
+                assertArrayEquals("Did not decrypt correctly", message, dutMessage);
             }
         }
 
         System.out.println("Test succeeded");
     }
 
-    private static void testDecryptDualTestVector() throws Exception {
+    @Test
+    public void testDecryptDualTestVector() throws Exception {
         System.out.println("\nTest decrypt dual test vector");
 
         String fileName = "decryptDual.input";
@@ -170,39 +151,29 @@ public class DualSaltTestVectorTest {
                 byte[] publicKeyB = new byte[DualSalt.publicKeyLength];
 
                 DualSalt.createKeyPair(publicKeyA, secretKeyA, dutKeySeedA);
-                if (!Arrays.equals(dutPublicPartA, publicKeyA)) {
-                    throw new Exception("Public key A do not match");
-                }
+                assertArrayEquals("Public key A do not match", dutPublicPartA, publicKeyA);
 
                 DualSalt.createKeyPair(publicKeyB, secretKeyB, dutKeySeedB);
-                if (!Arrays.equals(dutPublicPartB, publicKeyB)) {
-                    throw new Exception("Public key B do not match");
-                }
+                assertArrayEquals("Public key B do not match", dutPublicPartB, publicKeyB);
 
                 byte[] virtualPublicKey = DualSalt.addPublicKeys(publicKeyA, publicKeyB);
-                if (!Arrays.equals(dutVirtualPublicKey, virtualPublicKey)) {
-                    throw new Exception("Virtual public key do not match");
-                }
+                assertArrayEquals("Virtual public key do not match", dutVirtualPublicKey, virtualPublicKey);
 
-                byte[] nonce = new byte[DualSalt.nonceLength];
                 byte[] chipperText = DualSalt.encrypt(dutMessage, virtualPublicKey, dutTempKeySeed);
                 byte[] d1 = DualSalt.decryptDual1(chipperText, secretKeyA);
                 byte[] message = DualSalt.decryptDual2(d1, chipperText, secretKeyB);
 
-                if (!Arrays.equals(chipperText, dutChipperText)) {
-                    throw new Exception("Did not encrypt correctly");
-                }
+                assertArrayEquals("Did not encrypt correctly", chipperText, dutChipperText);
 
-                if (!Arrays.equals(message, dutMessage)) {
-                    throw new Exception("Did not decrypt correctly");
-                }
+                assertArrayEquals("Did not decrypt correctly", message, dutMessage);
             }
         }
 
         System.out.println("Test succeeded");
     }
 
-    private static void testKeyRotateTestVector() throws Exception {
+    @Test
+    public void testKeyRotateTestVector() throws Exception {
         System.out.println("\nTest key rotate test vector");
 
         String fileName = "keyRotate.input";
@@ -228,19 +199,13 @@ public class DualSaltTestVectorTest {
                 byte[] publicKeyB = new byte[DualSalt.publicKeyLength];
 
                 DualSalt.createKeyPair(publicKeyA, secretKeyA, dutKeySeedA);
-                if (!Arrays.equals(dutPublicPartA, publicKeyA)) {
-                    throw new Exception("Public key A do not match");
-                }
+                assertArrayEquals("Public key A do not match", dutPublicPartA, publicKeyA);
 
                 DualSalt.createKeyPair(publicKeyB, secretKeyB, dutKeySeedB);
-                if (!Arrays.equals(dutPublicPartB, publicKeyB)) {
-                    throw new Exception("Public key B do not match");
-                }
+                assertArrayEquals("Public key B do not match", dutPublicPartB, publicKeyB);
 
                 byte[] virtualPublicKey = DualSalt.addPublicKeys(publicKeyA, publicKeyB);
-                if (!Arrays.equals(dutVirtualPublicKey, virtualPublicKey)) {
-                    throw new Exception("Virtual public key do not match");
-                }
+                assertArrayEquals("Virtual public key do not match", dutVirtualPublicKey, virtualPublicKey);
 
                 byte[] newPublicPartA = new byte[DualSalt.publicKeyLength];
                 byte[] newPublicPartB = new byte[DualSalt.publicKeyLength];
@@ -248,40 +213,13 @@ public class DualSaltTestVectorTest {
                 DualSalt.rotateKey(newPublicPartB, secretKeyB, dutRotateRandom, false);
 
                 byte[] newVirtualPublicKey = DualSalt.addPublicKeys(newPublicPartA, newPublicPartB);
-                if (!Arrays.equals(dutVirtualPublicKey, newVirtualPublicKey)) {
-                    throw new Exception("Virtual public key do not match");
-                }
+                assertArrayEquals("Virtual public key do not match", dutVirtualPublicKey, newVirtualPublicKey);
 
-                if (!Arrays.equals(secretKeyA, dutNewSecretKeyA)) {
-                    throw new Exception("Secret Key A was not updated correctly");
-                }
-
-                if (!Arrays.equals(secretKeyB, dutNewSecretKeyB)) {
-                    throw new Exception("Secret Key B was not updated correctly");
-                }
+                assertArrayEquals("Secret Key A was not updated correctly", secretKeyA, dutNewSecretKeyA);
+                assertArrayEquals("Secret Key B was not updated correctly", secretKeyB, dutNewSecretKeyB);
             }
         }
 
         System.out.println("Test succeeded");
-    }
-
-    private void run() {
-        try {
-            testEddsaTestVector();
-            testSignDualTestVector();
-            testDecryptTestVector();
-            testDecryptDualTestVector();
-            testKeyRotateTestVector();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return;
-        }
-
-        System.out.println("\nSUCCESS! All tests were successful.");
-    }
-
-    public static void main(String[] args) {
-        DualSaltTestVectorTest t = new DualSaltTestVectorTest();
-        t.run();
     }
 }
