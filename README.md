@@ -43,9 +43,9 @@ there ability to represent the same virtual key pair.
     DualSalt.signVerify(signature, virtualPublicKey)
     
     // Decrypt data encrypted for the virtual key with the two key pairs
-    byte[] cipherMessage = DualSalt.encrypt(message, nonce, virtualPublicKey, random(32));
+    byte[] cipherMessage = DualSalt.encrypt(message, virtualPublicKey, random(32));
     byte[] d1 = DualSalt.decryptDual1(cipherMessage, secKeyA);
-    byte[] decryptedMessage = DualSalt.decryptDual2(d1, cipherMessage, nonce, secKeyB);
+    byte[] decryptedMessage = DualSalt.decryptDual2(d1, cipherMessage, secKeyB);
     message == decryptedMessage
     
     // Rotate the two keypairs, but they still represent the same virtual key pair.
@@ -60,9 +60,9 @@ there ability to represent the same virtual key pair.
     DualSalt.signVerify(signature, virtualPublicKey);
     
     // Decrypt data encrypted for the virtual key with the two new key pairs
-    cipherMessage = DualSalt.encrypt(message, nonce, virtualPublicKey, random(32));
+    cipherMessage = DualSalt.encrypt(message, virtualPublicKey, random(32));
     d1 = DualSalt.decryptDual1(cipherMessage, secKeyA);
-    decryptedMessage = DualSalt.decryptDual2(d1, cipherMessage, nonce, secKeyB);
+    decryptedMessage = DualSalt.decryptDual2(d1, cipherMessage, secKeyB);
     message == decryptedMessage;
 
 
