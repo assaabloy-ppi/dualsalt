@@ -18,7 +18,6 @@ public class DualSalt {
     public static final int secretKeyLength = TweetNaclFast.ScalarMult.scalarLength
             + secretRandomLength;
     public static final int publicKeyLength = TweetNaclFast.ScalarMult.groupElementLength;
-    public static final int nonceLength = TweetNaclFast.Box.nonceLength;
     public static final int seedLength = TweetNaclFast.Signature.seedLength;
     private static final int signatureLength = TweetNaclFast.Signature.signatureLength;
     private static final int m1HeaderLength = TweetNaclFast.ScalarMult.groupElementLength

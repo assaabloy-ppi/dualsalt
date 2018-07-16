@@ -10,13 +10,13 @@ SecretKey:PublicKey:Message:Signature:\r\n
 // SecretKey = KeySeed+PublicKey
 
 signDual.input
-KeySeedA:PublicPartA:KeySeedB:PublicPartB.VirtualPublicKey:Message:Signature\r\n
+KeySeedA:PublicPartA:KeySeedB:PublicPartB:VirtualPublicKey:Message:Signature\r\n
 
 decrypt.input
-KeySeed:PublicKey:TempKeySeed:Nonce:Message:ChipperText\r\n
+KeySeed:PublicKey:TempKeySeed:Message:ChipperText\r\n
 
 decryptDual.input
-KeySeedA:PublicPartA:KeySeedB:PublicPartB:VirtualPublicKey:TempKeySeed:Nonce:Message:ChipperText\r\n
+KeySeedA:PublicPartA:KeySeedB:PublicPartB:VirtualPublicKey:TempKeySeed:Message:ChipperText\r\n
 
 keyRotate.input
 KeySeedA:PublicPartA:KeySeedB:PublicPartB:VirtualPublicKey:RotateRandom:NewSecretKeyA:NewSecretKeyB\r\n
