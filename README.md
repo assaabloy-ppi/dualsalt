@@ -1,4 +1,9 @@
-dualsalt
+
+Do not use! Broken!
+===================
+See issue #11
+
+DualSalt
 ========
 
 DualSalt is an extension to the NaCl crypto library. It handles dual-signing (two-party signing) and 
