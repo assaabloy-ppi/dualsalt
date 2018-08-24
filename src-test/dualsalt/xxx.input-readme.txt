@@ -7,10 +7,9 @@ All test vectors are tested in DualSaltTestVectorTest.java The format of the fil
 
 sign.input
 SecretKey:PublicKey:Message:Signature:\r\n
-// SecretKey = KeySeed+PublicKey
 
 signDual.input
-KeySeedA:PublicPartA:KeySeedB:PublicPartB:VirtualPublicKey:Message:Signature\r\n
+KeySeedA:PublicPartA:RandA:KeySeedB:PublicPartB:RandB:VirtualPublicKey:Message:Signature\r\n
 
 decrypt.input
 KeySeed:PublicKey:TempKeySeed:Message:ChipperText\r\n

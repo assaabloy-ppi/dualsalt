@@ -35,36 +35,37 @@ there ability to represent the same virtual key pair.
     
     // Calculate a virtual key
     byte[] virtualPublicKey = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
-    
+
     // Sign for the virtual key with the two key pairs
-    byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, secKeyA);
-    byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB);
-    byte[] signature = DualSalt.signCreateDual3(m1, m2, pubKeyA, secKeyA);
+    byte[] randA = random(32);
+    byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, randA);
+    byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB, random(32));
+    byte[] signature = DualSalt.signCreateDual3(m1, m2, secKeyA, randA);
     DualSalt.signVerify(signature, virtualPublicKey)
     
     // Decrypt data encrypted for the virtual key with the two key pairs
     byte[] cipherMessage = DualSalt.encrypt(message, virtualPublicKey, random(32));
-    byte[] d1 = DualSalt.decryptDual1(cipherMessage, secKeyA);
-    byte[] decryptedMessage = DualSalt.decryptDual2(d1, cipherMessage, secKeyB);
+    byte[] d1 = DualSalt.decryptDual1(cipherMessage, secKeyB);
+    byte[] decryptedMessage = DualSalt.decryptDual2(d1, cipherMessage, secKeyA);
     message == decryptedMessage
     
     // Rotate the two keypairs, but they still represent the same virtual key pair.
     byte[] random = random(32)
-    DualSalt.rotateKey(pubKeyA, secKeyA, random, true);
-    DualSalt.rotateKey(pubKeyB, secKeyB, random, false);
+    byte[] newSecKeyA = DualSalt.rotateKey(secKeyA, random, true);
+    byte[] newSecKeyB = DualSalt.rotateKey(secKeyB, random, false);
     
     // Sign for the virtual key with the two new key pairs
-    m1 = DualSalt.signCreateDual1(message, virtualPublicKey, secKeyA);
-    m2 = DualSalt.signCreateDual2(m1, secKeyB);
-    signature = DualSalt.signCreateDual3(m1, m2, pubKeyA, secKeyA);
+    randA = random(32);
+    m1 = DualSalt.signCreateDual1(message, virtualPublicKey, randA);
+    m2 = DualSalt.signCreateDual2(m1, newSecKeyB, random(32));
+    signature = DualSalt.signCreateDual3(m1, m2, newSecKeyA, randA);
     DualSalt.signVerify(signature, virtualPublicKey);
     
     // Decrypt data encrypted for the virtual key with the two new key pairs
     cipherMessage = DualSalt.encrypt(message, virtualPublicKey, random(32));
-    d1 = DualSalt.decryptDual1(cipherMessage, secKeyA);
-    decryptedMessage = DualSalt.decryptDual2(d1, cipherMessage, secKeyB);
+    d1 = DualSalt.decryptDual1(cipherMessage, newSecKeyB);
+    decryptedMessage = DualSalt.decryptDual2(d1, cipherMessage, newSecKeyA);
     message == decryptedMessage;
-
 
 
 Design decisions

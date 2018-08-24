@@ -36,22 +36,64 @@ public class DualSaltTest {
         return scalar;
     }
 
-    private void testKeyAddition(byte[] keySeedA, byte[] keySeedB) {
+    private static byte[] calculatePublicKey(byte[] scalar) {
+        byte[] publicKey = new byte[DualSalt.publicKeyLength];
+        long[][] p = new long[4][];
+        p[0] = new long[16];
+        p[1] = new long[16];
+        p[2] = new long[16];
+        p[3] = new long[16];
+        TweetNaclFast.scalarbase(p, scalar, 0);
+        TweetNaclFast.pack(publicKey, p);
+        return publicKey;
+    }
+
+    static byte[] addGroupElements(byte[] elementA, byte[] elementB) {
+        long[][] a = unpack(elementA);
+        long[][] b = unpack(elementB);
+
+        TweetNaclFast.add(a, b);
+
+        byte[] elementAB = new byte[TweetNaclFast.ScalarMult.groupElementLength];
+        TweetNaclFast.pack(elementAB, a);
+
+        return elementAB;
+    }
+
+    private static long[][] unpack(byte[] packedGroupEl) {
+        long[][] unpackedGroupEl = new long[4][];
+        unpackedGroupEl[0] = new long[16];
+        unpackedGroupEl[1] = new long[16];
+        unpackedGroupEl[2] = new long[16];
+        unpackedGroupEl[3] = new long[16];
+        
+        int result = TweetNaclFast.unpackneg(unpackedGroupEl, packedGroupEl);
+        if (result != 0)
+            throw new IllegalArgumentException("Group element can not be unpacked");
+
+        // Change sign from neg to pos
+        TweetNaclFast.Z(unpackedGroupEl[0], TweetNaclFast.gf0, unpackedGroupEl[0]);
+        TweetNaclFast.M(unpackedGroupEl[3], unpackedGroupEl[0], unpackedGroupEl[1]);
+
+        return unpackedGroupEl;
+    }
+
+    private void testKeyAddition(byte[] keySeedA, byte[] keySeedB){
         System.out.println("\nTest key addition");
 
-        byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
-        byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
+        byte[] pubKeyA = new byte[DualSalt.dualPublicKeyLength];
+        byte[] pubKeyB = new byte[DualSalt.dualPublicKeyLength];
         byte[] secKeyA = new byte[DualSalt.secretKeyLength];
         byte[] secKeyB = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKeyPair(pubKeyA, secKeyA, keySeedA);
-        DualSalt.createKeyPair(pubKeyB, secKeyB, keySeedB);
+        DualSalt.createDualKeyPair(pubKeyA, secKeyA, keySeedA);
+        DualSalt.createDualKeyPair(pubKeyB, secKeyB, keySeedB);
 
-        byte[] pubKeyAB1 = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
+        byte[] pubKeyAB1 = DualSalt.addPublicKeyParts(pubKeyA, pubKeyB);
 
         byte[] secScalarAB = addScalars(secKeyA, secKeyB);
         byte[] secSecAB = new byte[DualSalt.secretKeyLength];
         System.arraycopy(secScalarAB, 0, secSecAB, 0, TweetNaclFast.ScalarMult.scalarLength);
-        byte[] pubKeyAB2 = DualSalt.calculatePublicKey(secSecAB);
+        byte[] pubKeyAB2 = calculatePublicKey(secSecAB);
 
         System.out.println( "Group public key 1: " + TweetNaclFast.hexEncodeToString(pubKeyAB1));
         System.out.println( "Group public key 2: " + TweetNaclFast.hexEncodeToString(pubKeyAB2));
@@ -62,36 +104,28 @@ public class DualSaltTest {
     private static void testRotateKeys(byte[] keySeedA, byte[] keySeedB, byte[] rotateSeed) {
         System.out.println("\nTest rotate keys");
 
-        byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
-        byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
-        byte[] secKeyA = new byte[DualSalt.secretKeyLength];
-        byte[] secKeyB = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKeyPair(pubKeyA, secKeyA, keySeedA);
-        DualSalt.createKeyPair(pubKeyB, secKeyB, keySeedB);
-        byte[] oldSecRandA = Arrays.copyOfRange(secKeyA, 32, DualSalt.secretKeyLength);
-        byte[] oldSecRandB = Arrays.copyOfRange(secKeyB, 32, DualSalt.secretKeyLength);
+        byte[] pubKeyA1 = new byte[DualSalt.dualPublicKeyLength];
+        byte[] pubKeyB1 = new byte[DualSalt.dualPublicKeyLength];
+        byte[] secKeyA1 = new byte[DualSalt.secretKeyLength];
+        byte[] secKeyB1 = new byte[DualSalt.secretKeyLength];
+        DualSalt.createDualKeyPair(pubKeyA1, secKeyA1, keySeedA);
+        DualSalt.createDualKeyPair(pubKeyB1, secKeyB1, keySeedB);
 
-        byte[] pubKeyAB1 = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
+        byte[] pubKeyAB1 = DualSalt.addPublicKeyParts(pubKeyA1, pubKeyB1);
 
-        byte[] pubKeyA2 = new byte[DualSalt.publicKeyLength];
-        byte[] pubKeyB2 = new byte[DualSalt.publicKeyLength];
-        DualSalt.rotateKey(pubKeyA2, secKeyA, rotateSeed, true);
-        DualSalt.rotateKey(pubKeyB2, secKeyB, rotateSeed, false);
+        byte[] secKeyA2 = DualSalt.rotateKey(secKeyA1, rotateSeed, true);
+        byte[] secKeyB2 = DualSalt.rotateKey(secKeyB1, rotateSeed, false);
+        byte[] pubKeyA2 = Arrays.copyOfRange(secKeyA2, 32, DualSalt.secretKeyLength);
+        byte[] pubKeyB2 = Arrays.copyOfRange(secKeyB2, 32, DualSalt.secretKeyLength);
 
-        assertArrayNotEquals("Fail, Some pub keys was the same", pubKeyA, pubKeyB);
-        assertArrayNotEquals("Fail, Some pub keys was the same", pubKeyA, pubKeyA2);
-        assertArrayNotEquals("Fail, Some pub keys was the same", pubKeyA, pubKeyB2);
-        assertArrayNotEquals("Fail, Some pub keys was the same", pubKeyB, pubKeyA2);
-        assertArrayNotEquals("Fail, Some pub keys was the same", pubKeyB, pubKeyB2);
-        assertArrayNotEquals("Fail, Some pub keys was the same", pubKeyA2, pubKeyB2);
+        assertArrayNotEquals("Fail, A1 and B1 was the same", pubKeyA1, pubKeyB1);
+        assertArrayNotEquals("Fail, A1 and A2 was the same", pubKeyA1, pubKeyA2);
+        assertArrayNotEquals("Fail, A1 and B2 was the same", pubKeyA1, pubKeyB2);
+        assertArrayNotEquals("Fail, B1 and A2 was the same", pubKeyB1, pubKeyA2);
+        assertArrayNotEquals("Fail, B1 and B2 was the same", pubKeyB1, pubKeyB2);
+        assertArrayNotEquals("Fail, A2 and B2 was the same", pubKeyA2, pubKeyB2);
 
-        byte[] newSecRandA = Arrays.copyOfRange(secKeyA, 32, DualSalt.secretKeyLength);
-        byte[] newSecRandB = Arrays.copyOfRange(secKeyB, 32, DualSalt.secretKeyLength);
-        assertArrayNotEquals("Fail, The secret random part has not changed correctly", oldSecRandA, newSecRandA);
-        assertArrayNotEquals("Fail, The secret random part has not changed correctly", oldSecRandB, newSecRandB);
-        assertArrayNotEquals("Fail, The secret random part has not changed correctly", newSecRandA, newSecRandB);
-
-        byte[] pubKeyAB2 = DualSalt.addPublicKeys(pubKeyA2, pubKeyB2);
+        byte[] pubKeyAB2 = addGroupElements(pubKeyA2, pubKeyB2);
 
         assertArrayEquals("Fail, The rotated virtual key did not produce the same pub key", pubKeyAB1, pubKeyAB2);
     }
@@ -101,9 +135,9 @@ public class DualSaltTest {
 
         byte[] publicKey = new byte[DualSalt.publicKeyLength];
         byte[] secretKey = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKeyPair(publicKey, secretKey, keySeed);
+        DualSalt.createSingleKeyPair(publicKey, secretKey, keySeed);
 
-        byte[] signature = DualSalt.signCreate(message, publicKey, secretKey);
+        byte[] signature = DualSalt.signCreate(message, secretKey);
 
         assertTrue("Verified signature failed", DualSalt.signVerify(signature, publicKey));
     }
@@ -113,9 +147,9 @@ public class DualSaltTest {
 
         byte[] publicKey = new byte[DualSalt.publicKeyLength];
         byte[] secretKey = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKeyPair(publicKey, secretKey, keySeed);
+        DualSalt.createSingleKeyPair(publicKey, secretKey, keySeed);
 
-        byte[] signature = DualSalt.signCreate(message, publicKey, secretKey);
+        byte[] signature = DualSalt.signCreate(message, secretKey);
 
         int steps = 10;
         for (int i = 0; i <= steps; i++) {
@@ -135,54 +169,49 @@ public class DualSaltTest {
         System.out.println( "Signature validation fail when it shall");
     }
 
-    private void testSubtractPubKey(byte[] keySeedA, byte[] keySeedB) {
-        System.out.println("\nTest subtract pub key");
-        byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
-        byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
-        byte[] secKeyA = new byte[DualSalt.secretKeyLength];
-        byte[] secKeyB = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKeyPair(pubKeyA, secKeyA, keySeedA);
-        DualSalt.createKeyPair(pubKeyB, secKeyB, keySeedB);
-        byte[] pubKeyC = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
-        byte[] pubKeyA2 = DualSalt.subtractPublicKeys(pubKeyC, pubKeyB);
-        byte[] pubKeyB2 = DualSalt.subtractPublicKeys(pubKeyC, pubKeyA);
-        assertArrayEquals("Fail, The add and subtract did not produce the same public key", pubKeyA, pubKeyA2);
-        assertArrayEquals("Fail, The add and subtract did not produce the same public key", pubKeyB, pubKeyB2);
-    }
-
-    private void testDualSign(byte[] keySeedA, byte[] keySeedB, byte[] message) {
+    private void testDualSign(byte[] keySeedA, byte[] keySeedB, byte[] random, byte[] message) {
         System.out.println("\nTest dual sign");
 
-        byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
-        byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
+        byte[] hash = new byte[64];
+        TweetNaclFast.crypto_hash(hash, random, 0, random.length);
+        byte[] randomA = Arrays.copyOfRange(hash, 0, 32);
+        byte[] randomB = Arrays.copyOfRange(hash, 32, hash.length);
+
+        byte[] pubKeyA = new byte[DualSalt.dualPublicKeyLength];
+        byte[] pubKeyB = new byte[DualSalt.dualPublicKeyLength];
         byte[] secKeyA = new byte[DualSalt.secretKeyLength];
         byte[] secKeyB = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKeyPair(pubKeyA, secKeyA, keySeedA);
-        DualSalt.createKeyPair(pubKeyB, secKeyB, keySeedB);
+        DualSalt.createDualKeyPair(pubKeyA, secKeyA, keySeedA);
+        DualSalt.createDualKeyPair(pubKeyB, secKeyB, keySeedB);
 
-        byte[] virtualPublicKey = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
+        byte[] virtualPublicKey = DualSalt.addPublicKeyParts(pubKeyA, pubKeyB);
 
-        byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, secKeyA);
-        byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB);
-        byte[] signature = DualSalt.signCreateDual3(m1, m2, pubKeyA, secKeyA);
+        byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, randomA);
+        byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB, randomB);
+        byte[] signature = DualSalt.signCreateDual3(m1, m2, secKeyA, randomA);
 
         assertTrue("Verified signature failed", DualSalt.signVerify(signature, virtualPublicKey));
     }
 
-    private void testNegativeDualSign(byte[] keySeedA, byte[] keySeedB, byte[] message) {
+    private void testNegativeDualSign(byte[] keySeedA, byte[] keySeedB, byte[] random,  byte[] message) {
         System.out.println("\nTest negative dual sign");
 
-        byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
-        byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
+        byte[] hash = new byte[64];
+        TweetNaclFast.crypto_hash(hash, random, 0, random.length);
+        byte[] randomA = Arrays.copyOfRange(hash, 0, 32);
+        byte[] randomB = Arrays.copyOfRange(hash, 32, hash.length);
+
+        byte[] pubKeyA = new byte[DualSalt.dualPublicKeyLength];
+        byte[] pubKeyB = new byte[DualSalt.dualPublicKeyLength];
         byte[] secKeyA = new byte[DualSalt.secretKeyLength];
         byte[] secKeyB = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKeyPair(pubKeyA, secKeyA, keySeedA);
-        DualSalt.createKeyPair(pubKeyB, secKeyB, keySeedB);
+        DualSalt.createDualKeyPair(pubKeyA, secKeyA, keySeedA);
+        DualSalt.createDualKeyPair(pubKeyB, secKeyB, keySeedB);
 
-        byte[] virtualPublicKey = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
+        byte[] virtualPublicKey = DualSalt.addPublicKeyParts(pubKeyA, pubKeyB);
 
-        byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, secKeyA);
-        byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB);
+        byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, randomA);
+        byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB, randomB);
 
         int steps = 10;
         for (int i = 0; i <= steps; i++) {
@@ -190,7 +219,7 @@ public class DualSaltTest {
             byte[] tempM2 = m2.clone();
             tempM2[j] = (byte) (tempM2[j] ^ 0x1);
             try {
-                DualSalt.signCreateDual3(m1, tempM2, pubKeyA, secKeyA);
+                DualSalt.signCreateDual3(m1, tempM2, secKeyA, randomA);
                 fail("Validated succeeded but it should not");
             } catch (IllegalArgumentException iae) {
                 // Do nothing. It shall fail.
@@ -198,11 +227,11 @@ public class DualSaltTest {
         }
 
         for (int i = 0; i <= steps; i++) {
-            int j = ((pubKeyA.length - 1) * i) / steps;
-            byte[] tempPubKeyA = pubKeyA.clone();
-            tempPubKeyA[j] = (byte) (tempPubKeyA[j] ^ 0x1);
+            int j = ((32 - 1) * i) / steps;
+            byte[] tempSecKeyA = secKeyA.clone();
+            tempSecKeyA[32+j] = (byte) (tempSecKeyA[32+j] ^ 0x1);
             try {
-                DualSalt.signCreateDual3(m1, m2, tempPubKeyA, secKeyA);
+                DualSalt.signCreateDual3(m1, m2, tempSecKeyA, randomA);
                 fail("Validated succeeded but it should not");
             } catch (IllegalArgumentException iae) {
                 // Do nothing. It shall fail.
@@ -217,7 +246,7 @@ public class DualSaltTest {
 
         byte[] pubKey = new byte[DualSalt.publicKeyLength];
         byte[] secKey = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKeyPair(pubKey, secKey, keySeed);
+        DualSalt.createSingleKeyPair(pubKey, secKey, keySeed);
 
         byte[] cipherMessage = DualSalt.encrypt(message, pubKey, keySeedE);
         System.out.println( "Cipher message:  " + TweetNaclFast.hexEncodeToString(cipherMessage));
@@ -232,7 +261,7 @@ public class DualSaltTest {
 
         byte[] pubKey = new byte[DualSalt.publicKeyLength];
         byte[] secKey = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKeyPair(pubKey, secKey, keySeed);
+        DualSalt.createSingleKeyPair(pubKey, secKey, keySeed);
 
         byte[] cipherMessage = DualSalt.encrypt(message, pubKey, keySeedE);
         System.out.println( "Cipher message:  " + TweetNaclFast.hexEncodeToString(cipherMessage));
@@ -256,13 +285,13 @@ public class DualSaltTest {
     private void testDualDecrypt(byte[] keySeedA, byte[] keySeedB, byte[] keySeedE, byte[] message) {
         System.out.println("\nTest dual decrypt");
 
-        byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
-        byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
+        byte[] pubKeyA = new byte[DualSalt.dualPublicKeyLength];
+        byte[] pubKeyB = new byte[DualSalt.dualPublicKeyLength];
         byte[] secKeyA = new byte[DualSalt.secretKeyLength];
         byte[] secKeyB = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKeyPair(pubKeyA, secKeyA, keySeedA);
-        DualSalt.createKeyPair(pubKeyB, secKeyB, keySeedB);
-        byte[] pubKeyAB = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
+        DualSalt.createDualKeyPair(pubKeyA, secKeyA, keySeedA);
+        DualSalt.createDualKeyPair(pubKeyB, secKeyB, keySeedB);
+        byte[] pubKeyAB = DualSalt.addPublicKeyParts(pubKeyA, pubKeyB);
 
         byte[] cipherMessage = DualSalt.encrypt(message, pubKeyAB, keySeedE);
         System.out.println( "Cipher message: " + TweetNaclFast.hexEncodeToString(cipherMessage));
@@ -275,13 +304,13 @@ public class DualSaltTest {
     private void testNegativeDualDecrypt(byte[] keySeedA, byte[] keySeedB, byte[] keySeedE, byte[] message) {
         System.out.println("\nTest negative dual decrypt");
 
-        byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
-        byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
+        byte[] pubKeyA = new byte[DualSalt.dualPublicKeyLength];
+        byte[] pubKeyB = new byte[DualSalt.dualPublicKeyLength];
         byte[] secKeyA = new byte[DualSalt.secretKeyLength];
         byte[] secKeyB = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKeyPair(pubKeyA, secKeyA, keySeedA);
-        DualSalt.createKeyPair(pubKeyB, secKeyB, keySeedB);
-        byte[] pubKeyAB = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
+        DualSalt.createDualKeyPair(pubKeyA, secKeyA, keySeedA);
+        DualSalt.createDualKeyPair(pubKeyB, secKeyB, keySeedB);
+        byte[] pubKeyAB = DualSalt.addPublicKeyParts(pubKeyA, pubKeyB);
 
         byte[] cipherMessage = DualSalt.encrypt(message, pubKeyAB, keySeedE);
         System.out.println( "Cipher message: " + TweetNaclFast.hexEncodeToString(cipherMessage));
@@ -373,41 +402,20 @@ public class DualSaltTest {
     }
 
     @Test
-    public void testSubtractPubKey1() {
-            testSubtractPubKey(rand1, rand2);
-    }
-
-    @Test
-    public void testSubtractPubKey2() {
-            testSubtractPubKey(rand1, rand3);
-    }
-
-    @Test
-    public void testSubtractPubKey3() {
-            testSubtractPubKey(rand2, rand3);
-    }
-
-    @Test
-    public void testDualSign1() {
-
-            testDualSign(rand1, rand2, testMessage1);
-    }
+    public void testDualSign1() { testDualSign(rand1, rand2, rand3, testMessage1); }
 
     @Test
     public void testDualSign2() {
-            testDualSign(rand1, rand3, testMessage2);
+            testDualSign(rand1, rand3, rand2, testMessage2);
     }
 
     @Test
     public void testDualSign3() {
-            testDualSign(rand2, rand3, testMessage3);
+            testDualSign(rand2, rand3, rand1, testMessage3);
     }
 
     @Test
-    public void testSingleDecrypt1() {
-
-            testSingleDecrypt(rand1, rand2, testMessage1);
-    }
+    public void testSingleDecrypt1() { testSingleDecrypt(rand1, rand2, testMessage1); }
 
     @Test
     public void testSingleDecrypt2() {
@@ -420,10 +428,7 @@ public class DualSaltTest {
     }
 
     @Test
-    public void testDualDecrypt1() {
-
-            testDualDecrypt(rand1, rand2, rand3, testMessage1);
-    }
+    public void testDualDecrypt1() { testDualDecrypt(rand1, rand2, rand3, testMessage1); }
 
     @Test
     public void testDualDecrypt2() {
@@ -436,10 +441,7 @@ public class DualSaltTest {
     }
 
     @Test
-    public void testNegativeSingleSign1() {
-
-            testNegativeSingleSign(rand1, testMessage1);
-    }
+    public void testNegativeSingleSign1() { testNegativeSingleSign(rand1, testMessage1); }
 
     @Test
     public void testNegativeSingleSign2() {
@@ -452,26 +454,20 @@ public class DualSaltTest {
     }
 
     @Test
-    public void testNegativeDualSign1() {
-
-            testNegativeDualSign(rand1, rand2, testMessage1);
-    }
+    public void testNegativeDualSign1() { testNegativeDualSign(rand1, rand2, rand3, testMessage1); }
 
     @Test
     public void testNegativeDualSign2() {
-            testNegativeDualSign(rand1, rand3, testMessage2);
+            testNegativeDualSign(rand1, rand3, rand2, testMessage2);
     }
 
     @Test
     public void testNegativeDualSign3() {
-            testNegativeDualSign(rand2, rand3, testMessage3);
+            testNegativeDualSign(rand2, rand3, rand1, testMessage3);
     }
 
     @Test
-    public void testNegativeSingleDecrypt1() {
-
-            testNegativeSingleDecrypt(rand1, rand2, testMessage1);
-    }
+    public void testNegativeSingleDecrypt1() { testNegativeSingleDecrypt(rand1, rand2, testMessage1); }
 
     @Test
     public void testNegativeSingleDecrypt2() {
@@ -484,10 +480,7 @@ public class DualSaltTest {
     }
 
     @Test
-    public void testNegativeDualDecrypt1() {
-
-            testNegativeDualDecrypt(rand1, rand2, rand3, testMessage1);
-    }
+    public void testNegativeDualDecrypt1() { testNegativeDualDecrypt(rand1, rand2, rand3, testMessage1); }
 
     @Test
     public void testNegativeDualDecrypt2() {
@@ -495,7 +488,92 @@ public class DualSaltTest {
     }
 
     @Test
-    public void testNegativeDualDecrypt3() {
-            testNegativeDualDecrypt(rand2, rand3, rand1, testMessage3);
+    public void testNegativeDualDecrypt3() { testNegativeDualDecrypt(rand2, rand3, rand1, testMessage3); }
+
+
+    private void isSmallOrderPrint(byte[] badEgg) {
+        long[][] egg = unpack(badEgg);
+        long[][] tempValue = unpack(badEgg);
+
+        byte[] badEggX8 = new byte[DualSalt.publicKeyLength];
+        System.out.println();
+        System.out.println("X1: " + TweetNaclFast.hexEncodeToString(badEgg));
+
+        TweetNaclFast.add(tempValue, egg);
+        TweetNaclFast.pack(badEggX8, tempValue);
+        System.out.println("X2: " + TweetNaclFast.hexEncodeToString(badEggX8));
+        TweetNaclFast.add(tempValue, egg);
+        TweetNaclFast.pack(badEggX8, tempValue);
+        System.out.println("X3: " + TweetNaclFast.hexEncodeToString(badEggX8));
+        TweetNaclFast.add(tempValue, egg);
+        TweetNaclFast.pack(badEggX8, tempValue);
+        System.out.println("X4: " + TweetNaclFast.hexEncodeToString(badEggX8));
+        TweetNaclFast.add(tempValue, egg);
+        TweetNaclFast.pack(badEggX8, tempValue);
+        System.out.println("X5: " + TweetNaclFast.hexEncodeToString(badEggX8));
+        TweetNaclFast.add(tempValue, egg);
+        TweetNaclFast.pack(badEggX8, tempValue);
+        System.out.println("X6: " + TweetNaclFast.hexEncodeToString(badEggX8));
+        TweetNaclFast.add(tempValue, egg);
+        TweetNaclFast.pack(badEggX8, tempValue);
+        System.out.println("X7: " + TweetNaclFast.hexEncodeToString(badEggX8));
+        TweetNaclFast.add(tempValue, egg);
+        TweetNaclFast.pack(badEggX8, tempValue);
+        System.out.println("X8: " + TweetNaclFast.hexEncodeToString(badEggX8));
+        TweetNaclFast.add(tempValue, egg);
+        TweetNaclFast.pack(badEggX8, tempValue);
+        System.out.println("X9: " + TweetNaclFast.hexEncodeToString(badEggX8));
+        System.out.println(Arrays.equals(badEgg, badEggX8));
+    }
+
+    private boolean isSmallOrder(byte[] badEgg){
+        long[][] buff = unpack(badEgg);
+        long[][] egg = unpack(badEgg);
+        TweetNaclFast.add(buff, buff);
+        TweetNaclFast.add(buff, buff);
+        TweetNaclFast.add(buff, buff);
+        TweetNaclFast.add(buff, egg);
+
+        byte[] badEggX8 = new byte[DualSalt.publicKeyLength];
+        TweetNaclFast.pack(badEggX8, buff);
+
+        return Arrays.equals(badEgg, badEggX8);
+    }
+
+    @Test
+    public void testDetectSmallGroup(){
+        byte[] badEgg1 = TweetNaclFast.hexDecode(
+            /* 0 (order 4) */
+            "0000000000000000000000000000000000000000000000000000000000000000");
+        byte[] badEgg2 = TweetNaclFast.hexDecode(
+            /* 1 (order 1) */
+            "0100000000000000000000000000000000000000000000000000000000000000");
+        byte[] badEgg3 = TweetNaclFast.hexDecode(
+        /* 2707385501144840649318225287225658788936804267575313519463743609750303402022
+           (order 8) */
+            "26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05");
+        /* 55188659117513257062467267217118295137698188065244968500265048394206261417927
+           (order 8) */
+        byte[] badEgg4 = TweetNaclFast.hexDecode(
+            "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a");
+            /* p-1 (order 2) */
+        byte[] badEgg5 = TweetNaclFast.hexDecode(
+            "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f");
+            /* p (=0, order 4) */
+        byte[] badEgg6 = TweetNaclFast.hexDecode(
+            "edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f");
+            /* p+1 (=1, order 1) */
+        byte[] badEgg7 = TweetNaclFast.hexDecode(
+            "eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f");
+
+        assertTrue("Did not detect small group attack", isSmallOrder(badEgg1));
+        assertTrue("Did not detect small group attack", isSmallOrder(badEgg2));
+        assertTrue("Did not detect small group attack", isSmallOrder(badEgg3));
+        assertTrue("Did not detect small group attack", isSmallOrder(badEgg4));
+        assertTrue("Did not detect small group attack", isSmallOrder(badEgg5));
+        isSmallOrder(badEgg6);
+        isSmallOrder(badEgg7);
+        isSmallOrderPrint(badEgg6);
+        isSmallOrderPrint(badEgg7);
     }
 }

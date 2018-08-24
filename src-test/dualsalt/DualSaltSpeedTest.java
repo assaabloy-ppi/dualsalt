@@ -20,18 +20,24 @@ public class DualSaltSpeedTest {
 
         byte[] rand1 = TweetNaclFast.hexDecode("ac49000da11249ea3510941703a7e21a39837c4d2d5300daebbd532df20f8135");
         byte[] rand2 = TweetNaclFast.hexDecode("e56f0eef73ade8f79bc1d16a99cbc5e4995afd8c14adb49410ecd957aecc8d02");
+        byte[] rand3 = TweetNaclFast.hexDecode("a39837c4d2d5300daebbd532df20f8135ac49000da11249ea3510941703a7e21");
+        byte[] rand4 = TweetNaclFast.hexDecode("a99cbc5e4995afd8c14adb49410ecd957aecc8d02e56f0eef73ade8f79bc1d16");
 
-        byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
-        byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
+        byte[] pubKeyA = new byte[DualSalt.dualPublicKeyLength];
+        byte[] pubKeyB = new byte[DualSalt.dualPublicKeyLength];
         byte[] secKeyA = new byte[DualSalt.secretKeyLength];
         byte[] secKeyB = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKeyPair(pubKeyA, secKeyA, rand1);
-        DualSalt.createKeyPair(pubKeyB, secKeyB, rand2);
+        DualSalt.createDualKeyPair(pubKeyA, secKeyA, rand1);
+        DualSalt.createDualKeyPair(pubKeyB, secKeyB, rand2);
+        byte[] virtualPublicKey = DualSalt.addPublicKeyParts(pubKeyA, pubKeyB);
 
-        byte[] virtualPublicKey = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
+        byte[] pubKeyC = new byte[DualSalt.publicKeyLength];
+        byte[] secKeyC = new byte[DualSalt.secretKeyLength];
+        DualSalt.createSingleKeyPair(pubKeyC, secKeyC, rand1);
+
         String testString = "Fy fabian vad jag vill ha en ny dator";
         byte[] message = testString.getBytes();
-        byte[] signature = DualSalt.signCreate(message, pubKeyA, secKeyA);
+        byte[] signature = DualSalt.signCreate(message, secKeyC);
 
         byte[] tweetSecretKeyA = new byte[64];
         System.arraycopy(rand1, 0, tweetSecretKeyA, 0 , DualSalt.seedLength);
@@ -46,14 +52,14 @@ public class DualSaltSpeedTest {
         System.out.println("TweetNaclFast.crypto_sign execution time: " + signRef + "µs");
 
         long signSingle = measureMeanMicroS(iterations, () ->
-            DualSalt.signCreate(message, pubKeyA, secKeyA)
+            DualSalt.signCreate(message, secKeyC)
         );
         System.out.println( "DualSalt.signCreate execution time: " + signSingle + "µs " + signSingle*100/signRef + "%");
 
         long signDual = measureMeanMicroS(iterations, () -> {
-            byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, secKeyA);
-            byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB);
-            DualSalt.signCreateDual3(m1, m2, pubKeyA, secKeyA);
+            byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, rand3);
+            byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB, rand4);
+            DualSalt.signCreateDual3(m1, m2, secKeyA, rand3);
         });
         System.out.println("DualSalt.signCreateDual execution time: " + signDual + "µs " + signDual*100/signRef + "%");
 
@@ -63,7 +69,7 @@ public class DualSaltSpeedTest {
         System.out.println("TweetNaclFast.crypto_sign_open execution time: " + verifyRef + "µs");
 
         long verify = measureMeanMicroS(iterations, () ->
-                DualSalt.signVerify(signature, pubKeyA)
+                DualSalt.signVerify(signature, pubKeyC)
         );
         System.out.println("DualSalt.signVerify execution time: " + verify + "µs " + verify*100/verifyRef + "%");
     }
@@ -76,27 +82,31 @@ public class DualSaltSpeedTest {
         byte[] rand2 = TweetNaclFast.hexDecode("e56f0eef73ade8f79bc1d16a99cbc5e4995afd8c14adb49410ecd957aecc8d02");
         byte[] rand3 = TweetNaclFast.hexDecode("E14A55160C418542BFB0B4DCEB4CAA489A09AF8B9F61104F27E621BCB5002388");
 
-        byte[] pubKeyA = new byte[DualSalt.publicKeyLength];
-        byte[] pubKeyB = new byte[DualSalt.publicKeyLength];
+        byte[] pubKeyA = new byte[DualSalt.dualPublicKeyLength];
+        byte[] pubKeyB = new byte[DualSalt.dualPublicKeyLength];
         byte[] secKeyA = new byte[DualSalt.secretKeyLength];
         byte[] secKeyB = new byte[DualSalt.secretKeyLength];
-        DualSalt.createKeyPair(pubKeyA, secKeyA, rand1);
-        DualSalt.createKeyPair(pubKeyB, secKeyB, rand2);
+        DualSalt.createDualKeyPair(pubKeyA, secKeyA, rand1);
+        DualSalt.createDualKeyPair(pubKeyB, secKeyB, rand2);
+        byte[] virtualPublicKey = DualSalt.addPublicKeyParts(pubKeyA, pubKeyB);
 
-        byte[] virtualPublicKey = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
+        byte[] pubKeyC = new byte[DualSalt.publicKeyLength];
+        byte[] secKeyC = new byte[DualSalt.secretKeyLength];
+        DualSalt.createSingleKeyPair(pubKeyC, secKeyC, rand1);
+
         String testString = "Fy fabian vad jag vill ha en ny dator";
         byte[] message = testString.getBytes();
-        byte[] chipperTextSingle = DualSalt.encrypt(message, pubKeyA, rand3);
+        byte[] chipperTextSingle = DualSalt.encrypt(message, pubKeyC, rand3);
         byte[] chipperTextDual = DualSalt.encrypt(message, virtualPublicKey, rand3);
         int iterations = 1000;
 
         long encrypt = measureMeanMicroS(iterations, () ->
-            DualSalt.encrypt(message, pubKeyA, rand3)
+            DualSalt.encrypt(message, pubKeyC, rand3)
         );
         System.out.println("DualSalt.encrypt execution time: " + encrypt + "µs");
 
         long decryptSingle = measureMeanMicroS(iterations, () ->
-                DualSalt.decrypt(chipperTextSingle, secKeyA)
+                DualSalt.decrypt(chipperTextSingle, secKeyC)
         );
         System.out.println("DualSalt.decrypt execution time: " + decryptSingle + "µs");
 

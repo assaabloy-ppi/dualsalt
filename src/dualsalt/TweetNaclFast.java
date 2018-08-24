@@ -3289,7 +3289,7 @@ public final class TweetNaclFast {
         return 0;
     }
 
-    static int unpackneg(long[] r[], byte p[]) {
+    public static int unpackneg(long[] r[], byte p[]) {
         long[] t = new long[16];
         long[] chk = new long[16];
         long[] num = new long[16];
