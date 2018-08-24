@@ -1,7 +1,6 @@
 
 Do not use! Broken!
 ===================
-See issue #11
 
 DualSalt
 ========
