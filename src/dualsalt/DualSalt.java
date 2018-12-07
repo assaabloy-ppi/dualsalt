@@ -28,8 +28,15 @@ public class DualSalt {
     private static final int m2Length = signatureLength;
     private static final int d1Length = groupElementLength;
     
-    private static final byte[] nonce = TweetNaclFast
-                    .hexDecode("000000000000000000000000000000000000000000000000");
+    private static final byte[] nonce =
+            TweetNaclFast.hexDecode("000000000000000000000000000000000000000000000000");
+    private final static byte[] infinityElement =
+            TweetNaclFast.hexDecode("0100000000000000000000000000000000000000000000000000000000000000");
+    private final static byte[] maxElement =
+            TweetNaclFast.hexDecode("edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f");
+    private final static byte[] scalarOrder =
+            TweetNaclFast.hexDecode("edd3f55c1a631258d69cf7a2def9de1400000000000000000000000000000010");
+
 
 
     /**
@@ -685,6 +692,52 @@ public class DualSalt {
         return decryptWithSharedGroupEl(cipherText, sharedGroupEl);
     }
 
+    /**
+     * Check if field element is valid
+     *
+     * @param fieldElement
+     *            the value to check
+     * @return True if fieldElement is in range
+     */
+    private static boolean validFieldElement(byte[] fieldElement){
+        for (int i = 31; i >= 0; i--) {
+            if (maxElement[i] < fieldElement[i]){
+                return false;
+            } else if (maxElement[i] > fieldElement[i]){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if a element is in the group.
+     * Test is taken from Chapter 3 in:
+     * https://iacr.org/archive/pkc2003/25670211/25670211.pdf
+     *
+     * @param element
+     *            Element to check
+     * @return True if the element is in the group
+     */
+    private static boolean inGroup(byte[] element){
+        // 1. Element is not infinity
+        if (Arrays.equals(element, infinityElement)){
+            return false;
+        }
+        // 2. Element is [0,q-1] Can't be negative and not larger or equal to q
+        if (!validFieldElement(element)){
+            return false;
+        }
+        // 3. Skip test. Other coordinate is calculated from the element so it can not be wrong
+        // 4. Element scalar multiplied with the order is infinity
+        byte[] out = new byte[DualSalt.groupElementLength];
+        long[][] p = createUnpackedGroupEl();
+        long[][] q = unpack(element);
+        TweetNaclFast.scalarmult(p, q, scalarOrder, 0);
+        TweetNaclFast.pack(out, p);
+        return Arrays.equals(out, infinityElement);
+    }
+
     /*-
      * The first of 2 functions that together can decrypt a cipher message from
      * encrypt() encrypted to an virtual key pair. d1 is recommended to be sent
@@ -712,6 +765,10 @@ public class DualSalt {
         byte[] d1 = new byte[d1Length];
         byte[] tempPublicKey = Arrays.copyOfRange(cipherMessage, 0,
                 publicKeyLength);
+
+        if (!inGroup(tempPublicKey)){
+            throw new IllegalArgumentException("Element not in group");
+        }
 
         long[][] p = createUnpackedGroupEl();
         long[][] q = unpack(tempPublicKey);

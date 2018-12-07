@@ -1,14 +1,24 @@
 package dualsalt;
 
-
-import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 
 import static org.junit.Assert.*;
 
 public class DualSaltTest {
+
+    @Rule
+    public ExpectedException exceptionRule = ExpectedException.none();
+
+    private byte[] addArrays(byte[] a, byte[] b){
+        byte[] c = new byte[a.length + b.length];
+        System.arraycopy(a, 0, c, 0, a.length);
+        System.arraycopy(b, 0, c, a.length, b.length);
+        return c;
+    }
 
     private static void assertArrayNotEquals(String message, byte[] expecteds, byte[] actuals) {
         try {
@@ -346,6 +356,12 @@ public class DualSaltTest {
         System.out.println( "Message decryption validation fail when it shall");
     }
 
+    public void testBadGroupElement(byte[] badGroupElement) {
+        exceptionRule.expect(IllegalArgumentException.class);
+        exceptionRule.expectMessage("Element not in group");
+        final byte[] dummySecretKey = TweetNaclFast.hexDecode("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+        DualSalt.decryptDual1(addArrays(badGroupElement, new byte[]{0}), dummySecretKey);
+    }
 
     private byte[] rand1 = TweetNaclFast
             .hexDecode("ac49000da11249ea3510941703a7e21a39837c4d2d5300daebbd532df20f8135");
@@ -491,87 +507,46 @@ public class DualSaltTest {
     @Test
     public void testNegativeDualDecrypt3() { testNegativeDualDecrypt(rand2, rand3, rand1, testMessage3); }
 
-    private byte[] scalarMult(byte[] groupElement, byte[] scalar) {
-        byte[] out = new byte[DualSalt.publicKeyLength];
-        long[][] p = new long[4][];
-        p[0] = new long[16];
-        p[1] = new long[16];
-        p[2] = new long[16];
-        p[3] = new long[16];
 
-        long[][] q  = unpack(groupElement);
-        TweetNaclFast.scalarmult(p, q,  scalar, 0);
-        TweetNaclFast.pack(out, p);
-        return out;
-    }
-
-    boolean largerOrEqual(byte[] a, byte[] b){
-
-        for (int i = 31; i >= 0; i--) {
-            if (a[i] < b[i]){
-                return false;
-            } else if (a[i] > b[i]){
-                return true;
-            }
-        }
-        return true;
-    }
-
-    private final static byte[] infinityElement = TweetNaclFast.hexDecode("0100000000000000000000000000000000000000000000000000000000000000");
-    private final static byte[] maxElement = TweetNaclFast.hexDecode("edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f");
-    private final static byte[] scalarOrder = TweetNaclFast.hexDecode("edd3f55c1a631258d69cf7a2def9de1400000000000000000000000000000010");
-    boolean inGroup(byte[] element){
-        // Test is taken from Chapter 3 in:
-        // https://iacr.org/archive/pkc2003/25670211/25670211.pdf
-        // 1. Element is not infinity
-        if (Arrays.equals(element, infinityElement)){
-            return false;
-        }
-        // 2. Element is [0,q-1] Can't be negative and not larger or equal to q
-        if (largerOrEqual(element, maxElement)){
-            return false;
-        }
-        // 3. Skip test. Other coordinate is calculated from the element so it can not be wrong
-        // 4. Element scalar multiplied with the order is infinity
-        return Arrays.equals(scalarMult(element, scalarOrder), infinityElement);
+    @Test
+    public void testBadGroupElement1() {
+        // 0 (order 4)
+        testBadGroupElement(TweetNaclFast.hexDecode("0000000000000000000000000000000000000000000000000000000000000000"));
     }
 
     @Test
-    public void testDetectSmallGroup(){
-        byte[][] badEggs = {
-            // 0 (order 4)
-            TweetNaclFast.hexDecode("0000000000000000000000000000000000000000000000000000000000000000"),
-            // 1 (order 1)
-            TweetNaclFast.hexDecode("0100000000000000000000000000000000000000000000000000000000000000"),
-            // 2707385501144840649318225287225658788936804267575313519463743609750303402022 (order 8)
-            TweetNaclFast.hexDecode("26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05"),
-            // 55188659117513257062467267217118295137698188065244968500265048394206261417927 (order 8)
-            TweetNaclFast.hexDecode("c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a"),
-            // p-1 (order 2)
-            TweetNaclFast.hexDecode("ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f"),
-            // p (=0, order 4)
-            TweetNaclFast.hexDecode("edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f"),
-            // p+1 (=1, order 1)
-            TweetNaclFast.hexDecode("eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f")};
+    public void testBadGroupElement2() {
+        // 1 (order 1)
+        testBadGroupElement(TweetNaclFast.hexDecode("0100000000000000000000000000000000000000000000000000000000000000"));
+    }
 
-        byte[] P = TweetNaclFast.hexDecode("5866666666666666666666666666666666666666666666666666666666666666");
-        byte[] r = TweetNaclFast.hexDecode("edd3f55c1a631258d69cf7a2def9de14edd3f55c1a631258d69cf7a2def91100");
-        byte[][] goodEggs = {P, scalarMult(P, r)};
+    @Test
+    public void testBadGroupElement3() {
+        // 2707385501144840649318225287225658788936804267575313519463743609750303402022 (order 8)
+        testBadGroupElement(TweetNaclFast.hexDecode("26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05"));
+    }
 
-        Assert.assertFalse(largerOrEqual(badEggs[0], badEggs[1]));
-        Assert.assertTrue(largerOrEqual(badEggs[1], badEggs[0]));
-        Assert.assertTrue(largerOrEqual(badEggs[5], badEggs[4]));
-        Assert.assertTrue(largerOrEqual(badEggs[5], badEggs[5]));
-        Assert.assertFalse(largerOrEqual(badEggs[5], badEggs[6]));
+    @Test
+    public void testBadGroupElement4() {
+        // 55188659117513257062467267217118295137698188065244968500265048394206261417927 (order 8)
+        testBadGroupElement(TweetNaclFast.hexDecode("c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a"));
+    }
 
-        for (byte[] badEgg : badEggs) {
-            assertFalse("Did not detect attack for: " + TweetNaclFast.hexEncodeToString(badEgg),
-                    inGroup(badEgg));
-        }
+    @Test
+    public void testBadGroupElement5() {
+        // p-1 (order 2)
+        testBadGroupElement(TweetNaclFast.hexDecode("ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f"));
+    }
 
-        for (byte[] goodEgg : goodEggs) {
-            assertTrue("Did detect incorrect attack for: " + TweetNaclFast.hexEncodeToString(goodEgg),
-                    inGroup(goodEgg));
-        }
+    @Test
+    public void testBadGroupElement6() {
+        // p (=0, order 4)
+        testBadGroupElement(TweetNaclFast.hexDecode("edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f"));
+    }
+
+    @Test
+    public void testBadGroupElement7() {
+        // p+1 (=1, order 1)
+        testBadGroupElement(TweetNaclFast.hexDecode("eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f"));
     }
 }
