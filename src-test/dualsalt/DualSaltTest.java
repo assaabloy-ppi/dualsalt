@@ -527,7 +527,7 @@ public class DualSaltTest {
         if (Arrays.equals(element, infinityElement)){
             return false;
         }
-        // 2. Element is [0,q-1] Cant be negative and not larger or equal to q
+        // 2. Element is [0,q-1] Can't be negative and not larger or equal to q
         if (largerOrEqual(element, maxElement)){
             return false;
         }
