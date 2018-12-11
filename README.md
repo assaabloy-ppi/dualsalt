@@ -104,7 +104,7 @@ We take no responsibility for the reliability or security of this library. Use a
 Code conventions
 ================
 
-The original Java code conventions, originally by Sun, is used and the following conventions
+The original Java code conventions, originally by Sun, are used and the following conventions
 that take precedence.
 
 * Max line width: 100 (not 80).
