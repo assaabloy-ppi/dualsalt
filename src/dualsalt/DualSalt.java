@@ -700,10 +700,12 @@ public class DualSalt {
      * @return True if fieldElement is in range
      */
     private static boolean validFieldElement(byte[] fieldElement){
+        byte[] tempFieldElement = fieldElement.clone();
+        tempFieldElement[31] &= 0x7F;
         for (int i = 31; i >= 0; i--) {
-            if (maxElement[i] < fieldElement[i]){
+            if ((maxElement[i]&0xFF) < (tempFieldElement[i]&0xFF)){
                 return false;
-            } else if (maxElement[i] > fieldElement[i]){
+            } else if ((maxElement[i]&0xFF) > (tempFieldElement[i]&0xFF)){
                 return true;
             }
         }
@@ -728,7 +730,7 @@ public class DualSalt {
         if (!validFieldElement(element)){
             return false;
         }
-        // 3. Skip test. Other coordinate is calculated from the element so it can not be wrong
+        // 3. Skip test. Second coordinate is calculated from the first so it can not be wrong
         // 4. Element scalar multiplied with the order is infinity
         byte[] out = new byte[DualSalt.groupElementLength];
         long[][] p = createUnpackedGroupEl();
@@ -798,6 +800,9 @@ public class DualSalt {
 
         byte[] tempPublicKey = Arrays.copyOfRange(cipherMessage, 0,
                 publicKeyLength);
+        if (!inGroup(tempPublicKey)){
+            throw new IllegalArgumentException("Element not in group");
+        }
         byte[] cipherText = Arrays.copyOfRange(cipherMessage, publicKeyLength,
                 cipherMessage.length);
         byte[] sharedGroupEl = new byte[groupElementLength];

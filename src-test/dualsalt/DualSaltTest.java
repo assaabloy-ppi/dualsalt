@@ -356,9 +356,14 @@ public class DualSaltTest {
         System.out.println( "Message decryption validation fail when it shall");
     }
 
-    public void testBadGroupElement(byte[] badGroupElement) {
+    private void testBadGroupElement(byte[] badGroupElement) {
         exceptionRule.expect(IllegalArgumentException.class);
         exceptionRule.expectMessage("Element not in group");
+        final byte[] dummySecretKey = TweetNaclFast.hexDecode("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+        DualSalt.decryptDual1(addArrays(badGroupElement, new byte[]{0}), dummySecretKey);
+    }
+
+    private void testValidGroupElement(byte[] badGroupElement) {
         final byte[] dummySecretKey = TweetNaclFast.hexDecode("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
         DualSalt.decryptDual1(addArrays(badGroupElement, new byte[]{0}), dummySecretKey);
     }
@@ -442,6 +447,11 @@ public class DualSaltTest {
     @Test
     public void testSingleDecrypt3() {
             testSingleDecrypt(rand2, rand3, testMessage3);
+    }
+
+    @Test
+    public void testSingleDecrypt4() {
+        testSingleDecrypt(rand2, rand1, testMessage3);
     }
 
     @Test
@@ -548,5 +558,17 @@ public class DualSaltTest {
     public void testBadGroupElement7() {
         // p+1 (=1, order 1)
         testBadGroupElement(TweetNaclFast.hexDecode("eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f"));
+    }
+
+    @Test
+    public void testGoodGroupElement1() {
+        byte[] seed = TweetNaclFast.hexDecode("5F36FB98C63B1292DD66F7A8799C4B58368D193BB7BDD50BDC5F46A0423C49D6");
+        byte[] tempSecretKey = new byte[DualSalt.secretKeyLength];
+        TweetNaclFast.crypto_hash(tempSecretKey, seed, 0, DualSalt.seedLength);
+        tempSecretKey[0] &= 248;
+        tempSecretKey[31] &= 127;
+        tempSecretKey[31] |= 64;
+        byte[] tempPublicKey = calculatePublicKey(tempSecretKey);
+        testValidGroupElement(tempPublicKey);
     }
 }
