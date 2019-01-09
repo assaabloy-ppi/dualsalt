@@ -6,6 +6,7 @@ import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 
+import static dualsalt.DualSalt.dualSecretKeyLength;
 import static org.junit.Assert.*;
 
 public class DualSaltTest {
@@ -94,8 +95,8 @@ public class DualSaltTest {
 
         byte[] pubKeyA = new byte[DualSalt.dualPublicKeyLength];
         byte[] pubKeyB = new byte[DualSalt.dualPublicKeyLength];
-        byte[] secKeyA = new byte[DualSalt.secretKeyLength];
-        byte[] secKeyB = new byte[DualSalt.secretKeyLength];
+        byte[] secKeyA = new byte[dualSecretKeyLength];
+        byte[] secKeyB = new byte[dualSecretKeyLength];
         DualSalt.createDualKeyPair(pubKeyA, secKeyA, keySeedA);
         DualSalt.createDualKeyPair(pubKeyB, secKeyB, keySeedB);
 
@@ -117,8 +118,8 @@ public class DualSaltTest {
 
         byte[] pubKeyA1 = new byte[DualSalt.dualPublicKeyLength];
         byte[] pubKeyB1 = new byte[DualSalt.dualPublicKeyLength];
-        byte[] secKeyA1 = new byte[DualSalt.secretKeyLength];
-        byte[] secKeyB1 = new byte[DualSalt.secretKeyLength];
+        byte[] secKeyA1 = new byte[dualSecretKeyLength];
+        byte[] secKeyB1 = new byte[dualSecretKeyLength];
         DualSalt.createDualKeyPair(pubKeyA1, secKeyA1, keySeedA);
         DualSalt.createDualKeyPair(pubKeyB1, secKeyB1, keySeedB);
 
@@ -126,8 +127,8 @@ public class DualSaltTest {
 
         byte[] secKeyA2 = DualSalt.rotateKey(secKeyA1, rotateSeed, true);
         byte[] secKeyB2 = DualSalt.rotateKey(secKeyB1, rotateSeed, false);
-        byte[] pubKeyA2 = Arrays.copyOfRange(secKeyA2, 32, DualSalt.secretKeyLength);
-        byte[] pubKeyB2 = Arrays.copyOfRange(secKeyB2, 32, DualSalt.secretKeyLength);
+        byte[] pubKeyA2 = Arrays.copyOfRange(secKeyA2, 64, DualSalt.dualSecretKeyLength);
+        byte[] pubKeyB2 = Arrays.copyOfRange(secKeyB2, 64, DualSalt.dualSecretKeyLength);
 
         assertArrayNotEquals("Fail, A1 and B1 was the same", pubKeyA1, pubKeyB1);
         assertArrayNotEquals("Fail, A1 and A2 was the same", pubKeyA1, pubKeyA2);
@@ -190,14 +191,14 @@ public class DualSaltTest {
 
         byte[] pubKeyA = new byte[DualSalt.dualPublicKeyLength];
         byte[] pubKeyB = new byte[DualSalt.dualPublicKeyLength];
-        byte[] secKeyA = new byte[DualSalt.secretKeyLength];
-        byte[] secKeyB = new byte[DualSalt.secretKeyLength];
+        byte[] secKeyA = new byte[dualSecretKeyLength];
+        byte[] secKeyB = new byte[dualSecretKeyLength];
         DualSalt.createDualKeyPair(pubKeyA, secKeyA, keySeedA);
         DualSalt.createDualKeyPair(pubKeyB, secKeyB, keySeedB);
 
         byte[] virtualPublicKey = DualSalt.addPublicKeyParts(pubKeyA, pubKeyB);
 
-        byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, randomA);
+        byte[] m1 = DualSalt.signCreateDual1(message, secKeyA, virtualPublicKey, randomA);
         byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB, randomB);
         byte[] signature = DualSalt.signCreateDual3(m1, m2, secKeyA, randomA);
 
@@ -214,14 +215,14 @@ public class DualSaltTest {
 
         byte[] pubKeyA = new byte[DualSalt.dualPublicKeyLength];
         byte[] pubKeyB = new byte[DualSalt.dualPublicKeyLength];
-        byte[] secKeyA = new byte[DualSalt.secretKeyLength];
-        byte[] secKeyB = new byte[DualSalt.secretKeyLength];
+        byte[] secKeyA = new byte[DualSalt.dualSecretKeyLength];
+        byte[] secKeyB = new byte[DualSalt.dualSecretKeyLength];
         DualSalt.createDualKeyPair(pubKeyA, secKeyA, keySeedA);
         DualSalt.createDualKeyPair(pubKeyB, secKeyB, keySeedB);
 
         byte[] virtualPublicKey = DualSalt.addPublicKeyParts(pubKeyA, pubKeyB);
 
-        byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, randomA);
+        byte[] m1 = DualSalt.signCreateDual1(message, secKeyA, virtualPublicKey, randomA);
         byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB, randomB);
 
         int steps = 10;
@@ -298,8 +299,8 @@ public class DualSaltTest {
 
         byte[] pubKeyA = new byte[DualSalt.dualPublicKeyLength];
         byte[] pubKeyB = new byte[DualSalt.dualPublicKeyLength];
-        byte[] secKeyA = new byte[DualSalt.secretKeyLength];
-        byte[] secKeyB = new byte[DualSalt.secretKeyLength];
+        byte[] secKeyA = new byte[dualSecretKeyLength];
+        byte[] secKeyB = new byte[dualSecretKeyLength];
         DualSalt.createDualKeyPair(pubKeyA, secKeyA, keySeedA);
         DualSalt.createDualKeyPair(pubKeyB, secKeyB, keySeedB);
         byte[] pubKeyAB = DualSalt.addPublicKeyParts(pubKeyA, pubKeyB);
@@ -317,8 +318,8 @@ public class DualSaltTest {
 
         byte[] pubKeyA = new byte[DualSalt.dualPublicKeyLength];
         byte[] pubKeyB = new byte[DualSalt.dualPublicKeyLength];
-        byte[] secKeyA = new byte[DualSalt.secretKeyLength];
-        byte[] secKeyB = new byte[DualSalt.secretKeyLength];
+        byte[] secKeyA = new byte[dualSecretKeyLength];
+        byte[] secKeyB = new byte[dualSecretKeyLength];
         DualSalt.createDualKeyPair(pubKeyA, secKeyA, keySeedA);
         DualSalt.createDualKeyPair(pubKeyB, secKeyB, keySeedB);
         byte[] pubKeyAB = DualSalt.addPublicKeyParts(pubKeyA, pubKeyB);
@@ -359,12 +360,12 @@ public class DualSaltTest {
     private void testBadGroupElement(byte[] badGroupElement) {
         exceptionRule.expect(IllegalArgumentException.class);
         exceptionRule.expectMessage("Element not in group");
-        final byte[] dummySecretKey = TweetNaclFast.hexDecode("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+        final byte[] dummySecretKey =  new byte[dualSecretKeyLength];
         DualSalt.decryptDual1(addArrays(badGroupElement, new byte[]{0}), dummySecretKey);
     }
 
     private void testValidGroupElement(byte[] badGroupElement) {
-        final byte[] dummySecretKey = TweetNaclFast.hexDecode("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+        final byte[] dummySecretKey =  new byte[dualSecretKeyLength];
         DualSalt.decryptDual1(addArrays(badGroupElement, new byte[]{0}), dummySecretKey);
     }
 

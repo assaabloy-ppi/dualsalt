@@ -25,8 +25,8 @@ public class DualSaltSpeedTest {
 
         byte[] pubKeyA = new byte[DualSalt.dualPublicKeyLength];
         byte[] pubKeyB = new byte[DualSalt.dualPublicKeyLength];
-        byte[] secKeyA = new byte[DualSalt.secretKeyLength];
-        byte[] secKeyB = new byte[DualSalt.secretKeyLength];
+        byte[] secKeyA = new byte[DualSalt.dualSecretKeyLength];
+        byte[] secKeyB = new byte[DualSalt.dualSecretKeyLength];
         DualSalt.createDualKeyPair(pubKeyA, secKeyA, rand1);
         DualSalt.createDualKeyPair(pubKeyB, secKeyB, rand2);
         byte[] virtualPublicKey = DualSalt.addPublicKeyParts(pubKeyA, pubKeyB);
@@ -57,7 +57,7 @@ public class DualSaltSpeedTest {
         System.out.println( "DualSalt.signCreate execution time: " + signSingle + "µs " + signSingle*100/signRef + "%");
 
         long signDual = measureMeanMicroS(iterations, () -> {
-            byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, rand3);
+            byte[] m1 = DualSalt.signCreateDual1(message, secKeyA, virtualPublicKey, rand3);
             byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB, rand4);
             DualSalt.signCreateDual3(m1, m2, secKeyA, rand3);
         });
@@ -84,8 +84,8 @@ public class DualSaltSpeedTest {
 
         byte[] pubKeyA = new byte[DualSalt.dualPublicKeyLength];
         byte[] pubKeyB = new byte[DualSalt.dualPublicKeyLength];
-        byte[] secKeyA = new byte[DualSalt.secretKeyLength];
-        byte[] secKeyB = new byte[DualSalt.secretKeyLength];
+        byte[] secKeyA = new byte[DualSalt.dualSecretKeyLength];
+        byte[] secKeyB = new byte[DualSalt.dualSecretKeyLength];
         DualSalt.createDualKeyPair(pubKeyA, secKeyA, rand1);
         DualSalt.createDualKeyPair(pubKeyB, secKeyB, rand2);
         byte[] virtualPublicKey = DualSalt.addPublicKeyParts(pubKeyA, pubKeyB);

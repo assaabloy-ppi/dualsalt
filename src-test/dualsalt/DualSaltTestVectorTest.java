@@ -64,9 +64,9 @@ public class DualSaltTestVectorTest {
                 byte[] dutMessage = TweetNaclFast.hexDecode(items[7]);
                 byte[] dutSignature  = TweetNaclFast.hexDecode(items[8]);
 
-                byte[] secretKeyA = new byte[DualSalt.secretKeyLength];
+                byte[] secretKeyA = new byte[DualSalt.dualSecretKeyLength];
                 byte[] publicKeyA = new byte[DualSalt.dualPublicKeyLength];
-                byte[] secretKeyB = new byte[DualSalt.secretKeyLength];
+                byte[] secretKeyB = new byte[DualSalt.dualSecretKeyLength];
                 byte[] publicKeyB = new byte[DualSalt.dualPublicKeyLength];
 
                 DualSalt.createDualKeyPair(publicKeyA, secretKeyA, dutKeySeedA);
@@ -78,7 +78,7 @@ public class DualSaltTestVectorTest {
                 byte[] virtualPublicKey = DualSalt.addPublicKeyParts(publicKeyA, publicKeyB);
                 assertArrayEquals("Virtual public key do not match", dutVirtualPublicKey, virtualPublicKey);
 
-                byte[] m1 = DualSalt.signCreateDual1(dutMessage, virtualPublicKey, dutRandA);
+                byte[] m1 = DualSalt.signCreateDual1(dutMessage, secretKeyA, virtualPublicKey, dutRandA);
                 byte[] m2 = DualSalt.signCreateDual2(m1, secretKeyB, dutRandB);
                 byte[] signature = DualSalt.signCreateDual3(m1, m2, secretKeyA, dutRandA);
 
@@ -146,9 +146,9 @@ public class DualSaltTestVectorTest {
                 byte[] dutMessage = TweetNaclFast.hexDecode(items[6]);
                 byte[] dutChipperText = TweetNaclFast.hexDecode(items[7]);
 
-                byte[] secretKeyA = new byte[DualSalt.secretKeyLength];
+                byte[] secretKeyA = new byte[DualSalt.dualSecretKeyLength];
                 byte[] publicKeyA = new byte[DualSalt.dualPublicKeyLength];
-                byte[] secretKeyB = new byte[DualSalt.secretKeyLength];
+                byte[] secretKeyB = new byte[DualSalt.dualSecretKeyLength];
                 byte[] publicKeyB = new byte[DualSalt.dualPublicKeyLength];
 
                 DualSalt.createDualKeyPair(publicKeyA, secretKeyA, dutKeySeedA);
@@ -194,9 +194,9 @@ public class DualSaltTestVectorTest {
                 byte[] dutNewSecretKeyA = TweetNaclFast.hexDecode(items[6]);
                 byte[] dutNewSecretKeyB  = TweetNaclFast.hexDecode(items[7]);
 
-                byte[] secretKeyA = new byte[DualSalt.secretKeyLength];
+                byte[] secretKeyA = new byte[DualSalt.dualSecretKeyLength];
                 byte[] publicKeyA = new byte[DualSalt.dualPublicKeyLength];
-                byte[] secretKeyB = new byte[DualSalt.secretKeyLength];
+                byte[] secretKeyB = new byte[DualSalt.dualSecretKeyLength];
                 byte[] publicKeyB = new byte[DualSalt.dualPublicKeyLength];
 
                 DualSalt.createDualKeyPair(publicKeyA, secretKeyA, dutKeySeedA);
