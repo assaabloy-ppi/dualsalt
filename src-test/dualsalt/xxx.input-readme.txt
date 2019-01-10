@@ -9,7 +9,7 @@ sign.input
 SecretKey:PublicKey:Message:Signature:\r\n
 
 signDual.input
-KeySeedA:PublicPartA:RandA:KeySeedB:PublicPartB:RandB:VirtualPublicKey:Message:Signature\r\n
+KeySeedA:PublicPartA:NonceA:KeySeedB:PublicPartB:NonceB:VirtualPublicKey:Message:Signature\r\n
 
 decrypt.input
 KeySeed:PublicKey:TempKeySeed:Message:ChipperText\r\n
