@@ -1,6 +1,6 @@
 
-Do not use! Broken!
-===================
+Do not use! Not audited
+=======================
 
 DualSalt
 ========
@@ -41,10 +41,10 @@ there ability to represent the same virtual key pair.
     byte[] virtualPublicKey = DualSalt.addPublicKeys(pubKeyA, pubKeyB);
 
     // Sign for the virtual key with the two key pairs
-    byte[] randA = random(32);
-    byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, randA);
+    byte[] nonceA = random(32);
+    byte[] m1 = DualSalt.signCreateDual1(message, virtualPublicKey, nonceA);
     byte[] m2 = DualSalt.signCreateDual2(m1, secKeyB, random(32));
-    byte[] signature = DualSalt.signCreateDual3(m1, m2, secKeyA, randA);
+    byte[] signature = DualSalt.signCreateDual3(m1, m2, secKeyA, nonceA);
     DualSalt.signVerify(signature, virtualPublicKey)
     
     // Decrypt data encrypted for the virtual key with the two key pairs
@@ -59,10 +59,10 @@ there ability to represent the same virtual key pair.
     byte[] newSecKeyB = DualSalt.rotateKey(secKeyB, random, false);
     
     // Sign for the virtual key with the two new key pairs
-    randA = random(32);
-    m1 = DualSalt.signCreateDual1(message, virtualPublicKey, randA);
+    nonceA = random(32);
+    m1 = DualSalt.signCreateDual1(message, virtualPublicKey, nonceA);
     m2 = DualSalt.signCreateDual2(m1, newSecKeyB, random(32));
-    signature = DualSalt.signCreateDual3(m1, m2, newSecKeyA, randA);
+    signature = DualSalt.signCreateDual3(m1, m2, newSecKeyA, nonceA);
     DualSalt.signVerify(signature, virtualPublicKey);
     
     // Decrypt data encrypted for the virtual key with the two new key pairs
