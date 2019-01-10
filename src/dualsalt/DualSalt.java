@@ -435,6 +435,8 @@ public class DualSalt {
      *            the message.
      * @param secretKeyA
      *            The first secret key of the ones that shall sign
+     * @param nonceA
+     *            Have to be unique for each signing but is not secret. Shall be reused in signCreateDual3
      * @return m1 message to be used in signCreateDual2() and signCreateDual3()
      */
     public static byte[] signCreateDual1(byte[] message, byte[] secretKeyA, byte[] virtualPublicKey, byte[] nonceA) {
@@ -464,6 +466,8 @@ public class DualSalt {
      *            The m1 message from signCreateDual1
      * @param secretKeyB
      *            The second secret key of the ones that shall sign
+     * @param nonceB
+     *            Have to be unique for each signing but is not secret
      * @return m2 message to be used in signCreateDual3()
      */
     public static byte[] signCreateDual2(byte[] m1, byte[] secretKeyB, byte[] nonceB) {
@@ -501,6 +505,8 @@ public class DualSalt {
      *            The m2 message from signCreateDual2
      * @param secretKeyA
      *            The first secret key of the ones that shall sign
+     * @param nonceA
+     *            Reused form signCreateDual1
      * @return The signature
      */
     public static byte[] signCreateDual3(byte[] m1, byte[] m2, byte[] secretKeyA, byte[] nonceA) {
