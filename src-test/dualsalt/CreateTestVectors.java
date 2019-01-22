@@ -32,14 +32,14 @@ public class CreateTestVectors {
         int messageLength = startMessageLength;
         for(int ii=1; ii<=numberOfTestVectors; ii++){
             byte[] keySeedA = TweetNaclFast.randombytes(DualSalt.seedLength);
-            byte[] secretPartA = new byte[DualSalt.dualSecretKeyLength];
-            byte[] publicPartA = new byte[DualSalt.dualPublicKeyLength];
-            DualSalt.createDualKeyPair(publicPartA, secretPartA, keySeedA);
+            byte[] secretPartA = new byte[DualSalt.secretKeyPartLength];
+            byte[] publicPartA = new byte[DualSalt.publicKeyPartLength];
+            DualSalt.createKeyPart(publicPartA, secretPartA, keySeedA);
 
             byte[] keySeedB = TweetNaclFast.randombytes( DualSalt.seedLength);
-            byte[] secretPartB = new byte[DualSalt.dualSecretKeyLength];
-            byte[] publicPartB = new byte[DualSalt.dualPublicKeyLength];
-            DualSalt.createDualKeyPair(publicPartB, secretPartB, keySeedB);
+            byte[] secretPartB = new byte[DualSalt.secretKeyPartLength];
+            byte[] publicPartB = new byte[DualSalt.publicKeyPartLength];
+            DualSalt.createKeyPart(publicPartB, secretPartB, keySeedB);
 
             byte[] virtualPublicKey = DualSalt.addPublicKeyParts(publicPartA, publicPartB);
 
@@ -89,7 +89,7 @@ public class CreateTestVectors {
             byte[] keySeed = TweetNaclFast.randombytes(DualSalt.seedLength);
             byte[] secretKey = new byte[DualSalt.secretKeyLength];
             byte[] publicKey = new byte[DualSalt.publicKeyLength];
-            DualSalt.createSingleKeyPair(publicKey, secretKey, keySeed);
+            DualSalt.createKeyPair(publicKey, secretKey, keySeed);
 
             byte[] tempKeySeed = TweetNaclFast.randombytes(DualSalt.seedLength);
             byte [] message =  TweetNaclFast.randombytes( messageLength);
@@ -130,14 +130,14 @@ public class CreateTestVectors {
         int messageLength = startMessageLength;
         for(int ii=1; ii<=numberOfTestVectors; ii++){
             byte[] keySeedA = TweetNaclFast.randombytes(DualSalt.seedLength);
-            byte[] secretPartA = new byte[DualSalt.dualSecretKeyLength];
-            byte[] publicPartA = new byte[DualSalt.dualPublicKeyLength];
-            DualSalt.createDualKeyPair(publicPartA, secretPartA, keySeedA);
+            byte[] secretPartA = new byte[DualSalt.secretKeyPartLength];
+            byte[] publicPartA = new byte[DualSalt.publicKeyPartLength];
+            DualSalt.createKeyPart(publicPartA, secretPartA, keySeedA);
 
             byte[] keySeedB = TweetNaclFast.randombytes(DualSalt.seedLength);
-            byte[] secretPartB = new byte[DualSalt.dualSecretKeyLength];
-            byte[] publicPartB = new byte[DualSalt.dualPublicKeyLength];
-            DualSalt.createDualKeyPair(publicPartB, secretPartB, keySeedB);
+            byte[] secretPartB = new byte[DualSalt.secretKeyPartLength];
+            byte[] publicPartB = new byte[DualSalt.publicKeyPartLength];
+            DualSalt.createKeyPart(publicPartB, secretPartB, keySeedB);
 
             byte[] virtualPublicKey = DualSalt.addPublicKeyParts(publicPartA, publicPartB);
 
@@ -181,20 +181,20 @@ public class CreateTestVectors {
 
         for(int ii=1; ii<=numberOfTestVectors; ii++){
             byte[] keySeedA = TweetNaclFast.randombytes( DualSalt.seedLength);
-            byte[] secretKeyA = new byte[DualSalt.dualSecretKeyLength];
-            byte[] publicKeyA = new byte[DualSalt.dualPublicKeyLength];
-            DualSalt.createDualKeyPair(publicKeyA, secretKeyA, keySeedA);
+            byte[] secretKeyA = new byte[DualSalt.secretKeyPartLength];
+            byte[] publicKeyA = new byte[DualSalt.publicKeyPartLength];
+            DualSalt.createKeyPart(publicKeyA, secretKeyA, keySeedA);
 
             byte[] keySeedB = TweetNaclFast.randombytes(DualSalt.seedLength);
-            byte[] secretKeyB = new byte[DualSalt.dualSecretKeyLength];
-            byte[] publicKeyB = new byte[DualSalt.dualPublicKeyLength];
-            DualSalt.createDualKeyPair(publicKeyB, secretKeyB, keySeedB);
+            byte[] secretKeyB = new byte[DualSalt.secretKeyPartLength];
+            byte[] publicKeyB = new byte[DualSalt.publicKeyPartLength];
+            DualSalt.createKeyPart(publicKeyB, secretKeyB, keySeedB);
 
             byte[] virtualPublicKey = DualSalt.addPublicKeyParts(publicKeyA, publicKeyB);
 
             byte [] rotateRandom = TweetNaclFast.randombytes(DualSalt.seedLength);
-            byte[] newSecretA = DualSalt.rotateKey(secretKeyA, rotateRandom, true);
-            byte[] newSecretB = DualSalt.rotateKey(secretKeyB, rotateRandom, false);
+            byte[] newSecretA = DualSalt.rotateKeyPart(secretKeyA, rotateRandom, true);
+            byte[] newSecretB = DualSalt.rotateKeyPart(secretKeyB, rotateRandom, false);
 
             byte[] newPublicKeyA = Arrays.copyOfRange(newSecretA, 32, 64);
             byte[] newPublicKeyB = Arrays.copyOfRange(newSecretB, 32, 64);

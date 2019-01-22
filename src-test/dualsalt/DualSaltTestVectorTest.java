@@ -30,7 +30,7 @@ public class DualSaltTestVectorTest {
                 byte[] secretKeySeed = Arrays.copyOfRange(dutSecretKey, 0, DualSalt.seedLength);
                 byte[] secretKey = new byte[DualSalt.secretKeyLength];
                 byte[] publicKey = new byte[DualSalt.publicKeyLength];
-                DualSalt.createSingleKeyPair(publicKey, secretKey, secretKeySeed);
+                DualSalt.createKeyPair(publicKey, secretKey, secretKeySeed);
                 assertArrayEquals("Public key do not match", dutPublicKey, publicKey);
 
                 byte[] signature = DualSalt.signCreate(dutMessage, dutSecretKey);
@@ -64,15 +64,15 @@ public class DualSaltTestVectorTest {
                 byte[] dutMessage = TweetNaclFast.hexDecode(items[7]);
                 byte[] dutSignature  = TweetNaclFast.hexDecode(items[8]);
 
-                byte[] secretKeyA = new byte[DualSalt.dualSecretKeyLength];
-                byte[] publicKeyA = new byte[DualSalt.dualPublicKeyLength];
-                byte[] secretKeyB = new byte[DualSalt.dualSecretKeyLength];
-                byte[] publicKeyB = new byte[DualSalt.dualPublicKeyLength];
+                byte[] secretKeyA = new byte[DualSalt.secretKeyPartLength];
+                byte[] publicKeyA = new byte[DualSalt.publicKeyPartLength];
+                byte[] secretKeyB = new byte[DualSalt.secretKeyPartLength];
+                byte[] publicKeyB = new byte[DualSalt.publicKeyPartLength];
 
-                DualSalt.createDualKeyPair(publicKeyA, secretKeyA, dutKeySeedA);
+                DualSalt.createKeyPart(publicKeyA, secretKeyA, dutKeySeedA);
                 assertArrayEquals("Public key A do not match", dutPublicPartA, publicKeyA);
 
-                DualSalt.createDualKeyPair(publicKeyB, secretKeyB, dutKeySeedB);
+                DualSalt.createKeyPart(publicKeyB, secretKeyB, dutKeySeedB);
                 assertArrayEquals("Public key B do not match", dutPublicPartB, publicKeyB);
 
                 byte[] virtualPublicKey = DualSalt.addPublicKeyParts(publicKeyA, publicKeyB);
@@ -110,7 +110,7 @@ public class DualSaltTestVectorTest {
 
                 byte[] secretKey = new byte[DualSalt.secretKeyLength];
                 byte[] publicKey = new byte[DualSalt.publicKeyLength];
-                DualSalt.createSingleKeyPair(publicKey, secretKey, dutKeySeed);
+                DualSalt.createKeyPair(publicKey, secretKey, dutKeySeed);
                 assertArrayEquals("Public key do not match", dutPublicKey, publicKey);
 
                 byte[] chipperText = DualSalt.encrypt(dutMessage, publicKey, dutTempKeySeed);
@@ -146,15 +146,15 @@ public class DualSaltTestVectorTest {
                 byte[] dutMessage = TweetNaclFast.hexDecode(items[6]);
                 byte[] dutChipperText = TweetNaclFast.hexDecode(items[7]);
 
-                byte[] secretKeyA = new byte[DualSalt.dualSecretKeyLength];
-                byte[] publicKeyA = new byte[DualSalt.dualPublicKeyLength];
-                byte[] secretKeyB = new byte[DualSalt.dualSecretKeyLength];
-                byte[] publicKeyB = new byte[DualSalt.dualPublicKeyLength];
+                byte[] secretKeyA = new byte[DualSalt.secretKeyPartLength];
+                byte[] publicKeyA = new byte[DualSalt.publicKeyPartLength];
+                byte[] secretKeyB = new byte[DualSalt.secretKeyPartLength];
+                byte[] publicKeyB = new byte[DualSalt.publicKeyPartLength];
 
-                DualSalt.createDualKeyPair(publicKeyA, secretKeyA, dutKeySeedA);
+                DualSalt.createKeyPart(publicKeyA, secretKeyA, dutKeySeedA);
                 assertArrayEquals("Public key A do not match", dutPublicPartA, publicKeyA);
 
-                DualSalt.createDualKeyPair(publicKeyB, secretKeyB, dutKeySeedB);
+                DualSalt.createKeyPart(publicKeyB, secretKeyB, dutKeySeedB);
                 assertArrayEquals("Public key B do not match", dutPublicPartB, publicKeyB);
 
                 byte[] virtualPublicKey = DualSalt.addPublicKeyParts(publicKeyA, publicKeyB);
@@ -194,22 +194,22 @@ public class DualSaltTestVectorTest {
                 byte[] dutNewSecretKeyA = TweetNaclFast.hexDecode(items[6]);
                 byte[] dutNewSecretKeyB  = TweetNaclFast.hexDecode(items[7]);
 
-                byte[] secretKeyA = new byte[DualSalt.dualSecretKeyLength];
-                byte[] publicKeyA = new byte[DualSalt.dualPublicKeyLength];
-                byte[] secretKeyB = new byte[DualSalt.dualSecretKeyLength];
-                byte[] publicKeyB = new byte[DualSalt.dualPublicKeyLength];
+                byte[] secretKeyA = new byte[DualSalt.secretKeyPartLength];
+                byte[] publicKeyA = new byte[DualSalt.publicKeyPartLength];
+                byte[] secretKeyB = new byte[DualSalt.secretKeyPartLength];
+                byte[] publicKeyB = new byte[DualSalt.publicKeyPartLength];
 
-                DualSalt.createDualKeyPair(publicKeyA, secretKeyA, dutKeySeedA);
+                DualSalt.createKeyPart(publicKeyA, secretKeyA, dutKeySeedA);
                 assertArrayEquals("Public key A do not match", dutPublicPartA, publicKeyA);
 
-                DualSalt.createDualKeyPair(publicKeyB, secretKeyB, dutKeySeedB);
+                DualSalt.createKeyPart(publicKeyB, secretKeyB, dutKeySeedB);
                 assertArrayEquals("Public key B do not match", dutPublicPartB, publicKeyB);
 
                 byte[] virtualPublicKey = DualSalt.addPublicKeyParts(publicKeyA, publicKeyB);
                 assertArrayEquals("Virtual public key do not match", dutVirtualPublicKey, virtualPublicKey);
 
-                byte[] newSecretKeyA = DualSalt.rotateKey(secretKeyA, dutRotateRandom, true);
-                byte[] newSecretKeyB = DualSalt.rotateKey(secretKeyB, dutRotateRandom, false);
+                byte[] newSecretKeyA = DualSalt.rotateKeyPart(secretKeyA, dutRotateRandom, true);
+                byte[] newSecretKeyB = DualSalt.rotateKeyPart(secretKeyB, dutRotateRandom, false);
 
                 assertArrayEquals("Secret Key A was not updated correctly", newSecretKeyA, dutNewSecretKeyA);
                 assertArrayEquals("Secret Key B was not updated correctly", newSecretKeyB, dutNewSecretKeyB);
