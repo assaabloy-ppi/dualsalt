@@ -29,6 +29,8 @@ and how A-B together can decrypt such a message.
 Finally, the example show how A's and B's secret key parts can be rotated while preserving 
 there ability to represent the same virtual key pair.
 
+[example.java ](src-test/dualsalt/example.java)
+
     byte[] pubKeyPartA = new byte[DualSalt.publicKeyPartLength];
     byte[] secKeyPartA = new byte[DualSalt.secretKeyPartLength];
     DualSalt.createKeyPart(pubKeyPartA, secKeyPartA, random(32));
