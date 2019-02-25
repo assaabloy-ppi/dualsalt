@@ -6,7 +6,7 @@ DualSalt
 ========
 
 DualSalt is an extension to the NaCl crypto library. It handles dual-signing (two-party signing) and 
-dual-decryption (two-party decryption).
+dual-decryption (two-party decryption). The functionality is describet here [dualsalt.pdf](../master/doc/dualsalt.pdf)
 
 
 
