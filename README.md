@@ -1,7 +1,3 @@
-
-Do not use! Not audited
-=======================
-
 DualSalt
 ========
 
